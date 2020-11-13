@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30406.217
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpLibDemo", "HttpLibDemo\HttpLibDemo.csproj", "{2D059CE8-8D9D-4430-88BD-4938022A7CB7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A1CDAA57-14DD-44DC-AAC3-3317DF2828B1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpLib", "src\HttpLib\HttpLib.csproj", "{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2D059CE8-8D9D-4430-88BD-4938022A7CB7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D059CE8-8D9D-4430-88BD-4938022A7CB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D059CE8-8D9D-4430-88BD-4938022A7CB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D059CE8-8D9D-4430-88BD-4938022A7CB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4} = {A1CDAA57-14DD-44DC-AAC3-3317DF2828B1}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B1018500-4BEF-4052-9F33-C5ECC423530E}
+	EndGlobalSection
+EndGlobal
