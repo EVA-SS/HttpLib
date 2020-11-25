@@ -425,6 +425,7 @@ namespace HttpLib
         #endregion
 
         #region 请求核心
+
         /// <summary>
         /// 异步请求
         /// </summary>
@@ -458,6 +459,20 @@ namespace HttpLib
                     }
                 }
             });
+        }
+
+        /// <summary>
+        /// 同步请求
+        /// </summary>
+        /// <returns>不下载流</returns>
+        public WebResult RequestByNone()
+        {
+            TaskResult val = Go(0);
+            if (val != null)
+            {
+                return val.web;
+            }
+            return null;
         }
 
         /// <summary>
@@ -505,16 +520,16 @@ namespace HttpLib
                         {
                             if (urlTemp.Contains("?"))
                             {
-                                param += "&" + item.Key + "=" + Uri.EscapeDataString(item.Value);
+                                param += "&" + item.Key + "=" + item.Value;
                             }
                             else
                             {
-                                param = "?" + item.Key + "=" + Uri.EscapeDataString(item.Value);
+                                param = "?" + item.Key + "=" + item.Value;
                             }
                         }
                         else
                         {
-                            param += "&" + item.Key + "=" + Uri.EscapeDataString(item.Value);
+                            param += "&" + item.Key + "=" + item.Value;
                         }
                     }
                     urlTemp += param;
