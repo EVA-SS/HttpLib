@@ -114,7 +114,7 @@ success((WebResult web,string result) => {
 RequestByString();
 ```
 
-##### 实例1
+# 实例1
 >异步
 ```
 Http.Get("https://www.baidu.com")
@@ -136,7 +136,7 @@ Http.Get("https://www.baidu.com")
 }).RequestAsync();
 ```
 
-##### 实例2 
+# 实例2 
 >同步
 ```
 string result = Http.Get("https://www.baidu.com")
