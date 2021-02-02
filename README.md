@@ -2,7 +2,8 @@
 便捷的Http库
 ===========================
 如果你喜欢 HttpLib 项目，请为本项点亮一颗星 ⭐！
-
+****
+已上传NuGet：https://www.nuget.org/packages/Tom.HttpLib
 ****
 	
 |作者|Tom|

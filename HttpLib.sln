@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpLibDemo", "HttpLibDemo\
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A1CDAA57-14DD-44DC-AAC3-3317DF2828B1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpLib", "src\HttpLib\HttpLib.csproj", "{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpLib", "src\HttpLib\HttpLib.csproj", "{0F2E7FF0-4A52-4AC5-9076-8AD136BA9671}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,16 +19,16 @@ Global
 		{2D059CE8-8D9D-4430-88BD-4938022A7CB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2D059CE8-8D9D-4430-88BD-4938022A7CB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2D059CE8-8D9D-4430-88BD-4938022A7CB7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F2E7FF0-4A52-4AC5-9076-8AD136BA9671}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F2E7FF0-4A52-4AC5-9076-8AD136BA9671}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F2E7FF0-4A52-4AC5-9076-8AD136BA9671}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F2E7FF0-4A52-4AC5-9076-8AD136BA9671}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{4BC104FE-3A9B-41AA-87D7-8332CE8208A4} = {A1CDAA57-14DD-44DC-AAC3-3317DF2828B1}
+		{0F2E7FF0-4A52-4AC5-9076-8AD136BA9671} = {A1CDAA57-14DD-44DC-AAC3-3317DF2828B1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B1018500-4BEF-4052-9F33-C5ECC423530E}

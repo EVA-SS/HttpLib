@@ -7,7 +7,18 @@ namespace HttpLib
     {
         static Http()
         {
+#if NET40
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls;
+#elif NET50 || NET45 || NET46
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+#elif NET47 || NET48 || NETCOREAPP3_0 || NETCOREAPP3_1
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+#elif NETSTANDARD2_1
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+#elif NETCOREAPP2_0 || NETCOREAPP2_1 || NETCOREAPP2_2
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+#endif
+
         }
         public static HttpCore Get(string url)
         {

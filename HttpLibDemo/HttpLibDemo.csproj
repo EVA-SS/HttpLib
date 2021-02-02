@@ -49,11 +49,5 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\src\HttpLib\HttpLib.csproj">
-      <Project>{4bc104fe-3a9b-41aa-87d7-8332ce8208a4}</Project>
-      <Name>HttpLib</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

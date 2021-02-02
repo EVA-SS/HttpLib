@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Web;
 
 namespace HttpLib
 {
@@ -42,6 +41,18 @@ namespace HttpLib
             this.FileName = fileInfo.Name;
 
             string contentType = MimeMapping.GetMimeMapping(fullName);
+
+            this.ContentType = contentType;
+            this.Stream = File.OpenRead(fullName);
+            this.Size = this.Stream.Length;
+        }
+        public Files(string name, string fullName, string type)
+        {
+            this.Name = name;
+            FileInfo fileInfo = new FileInfo(fullName);
+            this.FileName = fileInfo.Name;
+
+            string contentType = type;
 
             this.ContentType = contentType;
             this.Stream = File.OpenRead(fullName);

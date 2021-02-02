@@ -431,6 +431,36 @@ namespace HttpLib
         /// </summary>
         public Task RequestAsync()
         {
+#if NET40
+            return Task.Factory.StartNew(() =>
+            {
+                TaskResult val = Go(resultMode);
+                if (val != null && val.web != null)
+                {
+                    switch (resultMode)
+                    {
+                        case 0:
+                            if (_success0 != null)
+                            {
+                                _success0(val.web);
+                            }
+                            break;
+                        case 1:
+                            if (_success1 != null)
+                            {
+                                _success1(val.web, val.val != null ? val.val.ToString() : null);
+                            }
+                            break;
+                        case 2:
+                            if (_success2 != null)
+                            {
+                                _success2(val.web, val.val != null ? (byte[])val.val : null);
+                            }
+                            break;
+                    }
+                }
+            });
+#else
             return Task.Run(() =>
             {
                 TaskResult val = Go(resultMode);
@@ -459,6 +489,7 @@ namespace HttpLib
                     }
                 }
             });
+#endif
         }
 
         /// <summary>
