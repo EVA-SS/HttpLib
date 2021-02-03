@@ -120,7 +120,7 @@ namespace HttpLib
             }
             foreach (var item in properties)
             {
-                string val = Uri.EscapeDataString(item.GetValue(data, null).ToString());
+                string val = item.GetValue(data, null).ToString();
                 if (File.Exists(val))
                 {
                     this.data(new Files(item.Name, val));
@@ -281,8 +281,8 @@ namespace HttpLib
             }
             foreach (var item in properties)
             {
-                string key = GetTFName(item.Name);
-                string val = Uri.EscapeDataString(item.GetValue(header, null).ToString());
+                string key = GetTFName(item.Name).TrimStart('-');
+                string val = item.GetValue(header, null).ToString();
                 Val find = _headers.Find(ab => ab.Key == key);
                 if (find == null)
                 {
@@ -612,7 +612,12 @@ namespace HttpLib
                         {
                             request.ContentType = "application/text";
                         }
-                        Upload(request, encoding.GetBytes(_datastr));
+                        byte[] bs = encoding.GetBytes(_datastr);
+                        request.ContentLength = bs.Length;
+                        using (Stream reqStream = request.GetRequestStream())
+                        {
+                            reqStream.Write(bs, 0, bs.Length);
+                        }
                     }
                     else if (_files != null && _files.Count > 0)
                     {
@@ -718,7 +723,12 @@ namespace HttpLib
                                 param += "&" + item.Key + "=" + Uri.EscapeDataString(item.Value);
                             }
                         }
-                        Upload(request, encoding.GetBytes(param));
+                        byte[] bs = encoding.GetBytes(param);
+                        request.ContentLength = bs.Length;
+                        using (Stream reqStream = request.GetRequestStream())
+                        {
+                            reqStream.Write(bs, 0, bs.Length);
+                        }
                     }
                 }
                 #endregion
@@ -948,36 +958,6 @@ namespace HttpLib
         #endregion
 
         #region 请求流-帮助
-
-        private void Upload(HttpWebRequest req, byte[] data)
-        {
-            using (MemoryStream stream = new MemoryStream(data))
-            {
-                Upload(req, stream, data.Length);
-            }
-        }
-        private void Upload(HttpWebRequest req, Stream stream, long length)
-        {
-            //long requestMin = 0, requestMax = 0, responseMin = 0;
-            //long? responseMax = null;
-            requestMax = req.ContentLength = length;
-            byte[] buffer = new byte[4096];
-
-            using (Stream reqStream = req.GetRequestStream())
-            {
-                int contentLen = 0;
-                while ((contentLen = stream.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    reqStream.Write(buffer, 0, contentLen);
-                    contentLen = stream.Read(buffer, 0, buffer.Length);
-                    requestMin += contentLen;
-                    if (_requestProgress != null)
-                    {
-                        _requestProgress(requestMin, requestMax);
-                    }
-                }
-            }
-        }
 
         private string RandomString(int length)
         {

@@ -9,17 +9,22 @@
 		<PackageId>Tom.HttpLib</PackageId>
 		<PackageIcon>Logo.png</PackageIcon>
 		<RepositoryUrl>https://github.com/Haku-Men/HttpLib</RepositoryUrl>
-		<PackageLicenseFile>README.md</PackageLicenseFile>
-		<AssemblyVersion>1.0.1.0</AssemblyVersion>
-		<FileVersion>1.0.1.0</FileVersion>
-		<Version>1.0.1</Version>
+		<PackageLicenseFile></PackageLicenseFile>
+		<AssemblyVersion>1.0.3.0</AssemblyVersion>
+		<FileVersion>1.0.3.0</FileVersion>
+		<Version>1.0.3</Version>
+		<RepositoryType>GIT</RepositoryType>
+		<PackageReleaseNotes>便捷的Http库
+https://github.com/Haku-Men/HttpLib
+===========================
+如果你喜欢 HttpLib 项目，请为本项点亮一颗星 ⭐！</PackageReleaseNotes>
+		<PackageProjectUrl>https://github.com/Haku-Men/HttpLib</PackageProjectUrl>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net40|AnyCPU'">
+	  <DocumentationFile>G:\Tom Files\新建文件夹\戴尔PC\2020-04-29\D\ProMe\HttpLib\src\HttpLib\HttpLib.xml</DocumentationFile>
 	</PropertyGroup>
 	<ItemGroup>
-	  <None Include="..\..\..\TomMusic\TomMusic3.3.7.2\TomMusic\TomMusic\Resources\Logo.png">
-	    <Pack>True</Pack>
-	    <PackagePath></PackagePath>
-	  </None>
-	  <None Include="..\..\README.md">
+	  <None Include="..\..\Logo.png">
 	    <Pack>True</Pack>
 	    <PackagePath></PackagePath>
 	  </None>
