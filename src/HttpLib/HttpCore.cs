@@ -21,10 +21,6 @@ namespace HttpLib
             this.method = method;
         }
 
-        #region 对外的参数
-
-        #endregion
-
         #region 请求的参数
 
         List<Val> _datas = null;
@@ -120,24 +116,21 @@ namespace HttpLib
             }
             foreach (var item in properties)
             {
-                string val = item.GetValue(data, null).ToString();
-                if (File.Exists(val))
+                string key = item.Name;
+                if (key != "_")
                 {
-                    this.data(new Files(item.Name, val));
+                    key = key.TrimEnd('_');
+                }
+                string val = item.GetValue(data, null).ToString();
+                Val find = _datas.Find(ab => ab.Key == key);
+                if (find == null)
+                {
+                    _datas.Add(new Val(key, val));
                 }
                 else
                 {
-                    Val find = _datas.Find(ab => ab.Key == item.Name);
-                    if (find == null)
-                    {
-                        _datas.Add(new Val(item.Name, val));
-                    }
-                    else
-                    {
-                        find.SetValue(val);
-                    }
+                    find.SetValue(val);
                 }
-
             }
             return this;
         }

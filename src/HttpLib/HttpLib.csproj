@@ -21,8 +21,11 @@ https://github.com/Haku-Men/HttpLib
 		<PackageProjectUrl>https://github.com/Haku-Men/HttpLib</PackageProjectUrl>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net40|AnyCPU'">
-	  <DocumentationFile>G:\Tom Files\新建文件夹\戴尔PC\2020-04-29\D\ProMe\HttpLib\src\HttpLib\HttpLib.xml</DocumentationFile>
+	  <DocumentationFile></DocumentationFile>
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="HttpLib.xml" />
+	</ItemGroup>
 	<ItemGroup>
 	  <None Include="..\..\Logo.png">
 	    <Pack>True</Pack>

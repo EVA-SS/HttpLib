@@ -3,6 +3,9 @@ using System.Net;
 
 namespace HttpLib
 {
+    /// <summary>
+    /// 快捷的HTTP请求
+    /// </summary>
     public static class Http
     {
         static Http()

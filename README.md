@@ -43,6 +43,7 @@ Http.Get("https://www.baidu.com")
 >GET请求参数会自动注入到地址
 ```
 data(new { test1 = "测试1", test2 = "测试2" })
+data(new { params_ = "关键字参数" })
 ```
 ```
 data(new List<Val> {
@@ -118,7 +119,8 @@ RequestByString();
 # 实例1
 >异步
 ```
-Http.Get("https://www.baidu.com")
+Http.Get("https://www.baidu.com/s")
+.data(new { wd = "测试1", params_ = "关键字参数" })
 .redirect(true)
 .requestProgress((bytesSent, totalBytes) => {
 	double 进度 = (bytesSent * 1.0) / (totalBytes * 1.0);
@@ -140,7 +142,8 @@ Http.Get("https://www.baidu.com")
 # 实例2 
 >同步
 ```
-string result = Http.Get("https://www.baidu.com")
+string result = Http.Get("https://www.baidu.com/s")
+.data(new { wd = "测试1", params_ = "关键字参数" })
 .redirect(true)
 .fail((Exception e) => {
 	Console.Write(e.GetType());
