@@ -1,7 +1,6 @@
 ﻿using HttpLib;
 using System;
 using System.Collections.Generic;
-using System.Net;
 
 namespace HttpLibDemo
 {
@@ -13,9 +12,11 @@ namespace HttpLibDemo
                 new Val("accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"),
                 new Val("user-agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36 Edg/86.0.622.63"),
             };
-            Http.Get("http://www.baidu.com").header(headerss)
-                .header(new { userAgent = "测试1", accept = "*/*" })
-                   //.redirect(true)
+
+            Http.Post("https://www.baidu.com/s").header(headerss)
+                .data(new { wd = "GitHub - Haku-Men HttpLib" })
+                   //.header(new { userAgent = "测试1", accept = "*/*" })
+                   .redirect(true)
                    .requestProgress((bytesSent, totalBytes) =>
                    {
                        double dsa = (bytesSent * 1.0) / (totalBytes * 1.0);
@@ -39,7 +40,11 @@ namespace HttpLibDemo
                            Console.Write("{0} 下载            ", CountSize(bytesSent));
                        }
                    })
-                   .success((WebResult r,string a) =>
+                   .requestBefore((WebResult r) =>
+                   {
+                       return true; //继续请求
+                   })
+                   .success((WebResult r, string a) =>
                    {
                        Console.SetCursorPosition(0, 5);
                        Console.Write(a);
@@ -57,6 +62,7 @@ namespace HttpLibDemo
                 new Val("user-agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36 Edg/86.0.622.63"),
             };
             Http.Post("http://localhost:61489/api/values").header(headers)
+                .data(new { wd = new string[] { "GitHub - Haku-Men HttpLib", "321231" } })
                 .data(new List<Files> { new Files(@"C:\Users\ttgx\Desktop\Flowing.exe") })
                 .data(new List<Files> { new Files(@"C:\Users\ttgx\Desktop\ABT44B9D51AC6E96DA9220E39EED30D1945666375E8401AD7DE974193FD48211E72.jfif") })
                 .data(new Val("abc", "123"))

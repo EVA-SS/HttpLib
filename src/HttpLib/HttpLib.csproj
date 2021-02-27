@@ -4,17 +4,21 @@
 		<Authors>Tom</Authors>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-		<Copyright>Tom 2020</Copyright>
+		<Copyright>Tom 2021</Copyright>
 		<Description>便捷的Http库</Description>
 		<PackageId>Tom.HttpLib</PackageId>
 		<PackageIcon>Logo.png</PackageIcon>
 		<RepositoryUrl>https://github.com/Haku-Men/HttpLib</RepositoryUrl>
 		<PackageLicenseFile></PackageLicenseFile>
-		<AssemblyVersion>1.0.3.0</AssemblyVersion>
-		<FileVersion>1.0.3.0</FileVersion>
-		<Version>1.0.3</Version>
+		<AssemblyVersion>1.0.5.0</AssemblyVersion>
+		<FileVersion>1.0.5.0</FileVersion>
+		<Version>1.0.5</Version>
 		<RepositoryType>GIT</RepositoryType>
-		<PackageReleaseNotes>便捷的Http库
+		<PackageReleaseNotes>新增了对POST数组参数的支持
+新增了Http代理
+新增了请求之前处理
+
+便捷的Http库
 https://github.com/Haku-Men/HttpLib
 ===========================
 如果你喜欢 HttpLib 项目，请为本项点亮一颗星 ⭐！</PackageReleaseNotes>

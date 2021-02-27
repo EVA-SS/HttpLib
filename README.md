@@ -16,11 +16,11 @@
     * [创建请求](#创建请求)
     * [添加参数](#添加参数)
     * [添加请求头](#添加请求头)
+    * [设置代理](#设置代理)
     * [启用重定向](#启用重定向)
     * [设置超时时长](#设置超时时长)
     * [设置编码](#设置编码)
-    * [注入回调获取进度](#注入回调获取进度)
-    * [请求](#请求)
+    * [请求之前处理](#请求之前处理)
     * [注入回调获取进度](#注入回调获取进度)
         * [上传](#上传)
         * [下载](#下载)
@@ -44,6 +44,8 @@ Http.Get("https://www.baidu.com")
 ```
 data(new { test1 = "测试1", test2 = "测试2" })
 data(new { params_ = "关键字参数" })
+data(new { wd = new string[] { "GitHub - Haku-Men HttpLib", "POST数组参数" } })
+query(new { test = "POST下继续传递URL参数" })
 ```
 ```
 data(new List<Val> {
@@ -64,6 +66,10 @@ header(new List<Val> {
 	new Val("user-agent","Chrome")
 })
 ```
+### 设置代理
+```
+proxy("127.0.0.1",1000)
+```
 ### 启用重定向
 >默认禁止
 ```
@@ -78,6 +84,14 @@ timeout(3000)
 >默认`utf-8`
 ```
 encoding('utf-8')
+```
+
+### 请求之前处理
+```
+requestBefore((WebResult r) =>
+{
+	return true; //继续请求
+})
 ```
 
 ### 注入回调获取进度
@@ -120,7 +134,7 @@ RequestByString();
 >异步
 ```
 Http.Get("https://www.baidu.com/s")
-.data(new { wd = "测试1", params_ = "关键字参数" })
+.data(new { wd = "GitHub - Haku-Men HttpLib", params_ = "关键字参数" })
 .redirect(true)
 .requestProgress((bytesSent, totalBytes) => {
 	double 进度 = (bytesSent * 1.0) / (totalBytes * 1.0);
@@ -143,7 +157,7 @@ Http.Get("https://www.baidu.com/s")
 >同步
 ```
 string result = Http.Get("https://www.baidu.com/s")
-.data(new { wd = "测试1", params_ = "关键字参数" })
+.data(new { wd = "GitHub - Haku-Men HttpLib", params_ = "关键字参数" })
 .redirect(true)
 .fail((Exception e) => {
 	Console.Write(e.GetType());

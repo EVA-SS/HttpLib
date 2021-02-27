@@ -21,6 +21,121 @@ namespace HttpLib
             this.method = method;
         }
 
+        #region Get请求的参数
+
+        List<Val> _querys = null;
+
+        /// <summary>
+        /// Get请求的参数
+        /// </summary>
+        /// <param name="val">单个参数</param>
+        public HttpCore query(Val val)
+        {
+            if (_querys == null)
+            {
+                _querys = new List<Val> { val };
+            }
+            else
+            {
+                Val find = _querys.Find(ab => ab.Key == val.Key);
+                if (find == null)
+                {
+                    _querys.Add(val);
+                }
+                else
+                {
+                    find.SetValue(val.Value);
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Get请求的参数
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore query(List<Val> vals)
+        {
+            if (_querys == null)
+            {
+                _querys = new List<Val>();
+            }
+            foreach (Val val in vals)
+            {
+                Val find = _querys.Find(ab => ab.Key == val.Key);
+                if (find == null)
+                {
+                    _querys.Add(val);
+                }
+                else
+                {
+                    find.SetValue(val.Value);
+                }
+            }
+            return this;
+        }
+
+
+        /// <summary>
+        /// Get请求的参数
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore query(IDictionary<string, string> vals)
+        {
+            if (_querys == null)
+            {
+                _querys = new List<Val>();
+            }
+            foreach (var item in vals)
+            {
+                Val find = _querys.Find(ab => ab.Key == item.Key);
+                if (find == null)
+                {
+                    _querys.Add(new Val(item.Key, item.Value));
+                }
+                else
+                {
+                    find.SetValue(item.Value);
+                }
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Get请求的参数
+        /// </summary>
+        /// <param name="data">多个参数</param>
+        public HttpCore query(object data)
+        {
+            PropertyInfo[] properties = data.GetType().GetProperties();
+            if (_querys == null)
+            {
+                _querys = new List<Val>();
+            }
+            foreach (var item in properties)
+            {
+                string key = item.Name;
+                if (key != "_")
+                {
+                    key = key.TrimEnd('_');
+                }
+                string val = item.GetValue(data, null).ToString();
+                Val find = _querys.Find(ab => ab.Key == key);
+                if (find == null)
+                {
+                    _querys.Add(new Val(key, val));
+                }
+                else
+                {
+                    find.SetValue(val);
+                }
+            }
+            return this;
+        }
+
+
+        #endregion
+
         #region 请求的参数
 
         List<Val> _datas = null;
@@ -102,11 +217,57 @@ namespace HttpLib
             }
             return this;
         }
+        /// <summary>
+        /// 请求的参数
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore data(IDictionary<string, string[]> vals)
+        {
+            if (this.method == HttpMethod.Get)
+            {
+                throw new Exception("Get不支持数组");
+            }
+            if (_datas == null)
+            {
+                _datas = new List<Val>();
+            }
+            foreach (var item in vals)
+            {
+                foreach (string items in item.Value)
+                {
+                    _datas.Add(new Val(item.Key + "[]", items));
+                }
+            }
+            return this;
+        }
+        /// <summary>
+        /// 请求的参数
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore data(IDictionary<string, List<string>> vals)
+        {
+            if (this.method == HttpMethod.Get)
+            {
+                throw new Exception("Get不支持数组");
+            }
+            if (_datas == null)
+            {
+                _datas = new List<Val>();
+            }
+            foreach (var item in vals)
+            {
+                foreach (string items in item.Value)
+                {
+                    _datas.Add(new Val(item.Key + "[]", items));
+                }
+            }
+            return this;
+        }
 
         /// <summary>
         /// 请求的参数
         /// </summary>
-        /// <param name="data">多个头/文件地址</param>
+        /// <param name="data">多个参数</param>
         public HttpCore data(object data)
         {
             PropertyInfo[] properties = data.GetType().GetProperties();
@@ -121,15 +282,35 @@ namespace HttpLib
                 {
                     key = key.TrimEnd('_');
                 }
-                string val = item.GetValue(data, null).ToString();
-                Val find = _datas.Find(ab => ab.Key == key);
-                if (find == null)
+                object valO = item.GetValue(data, null);
+                string tname = valO.GetType().Name;
+                if (typeof(System.Collections.IList).IsAssignableFrom(valO.GetType()))
                 {
-                    _datas.Add(new Val(key, val));
+                    if (this.method == HttpMethod.Get)
+                    {
+                        throw new Exception("Get不支持数组");
+                    }
+                    System.Collections.IList list = valO as System.Collections.IList;
+                    foreach (var items in list)
+                    {
+                        _datas.Add(new Val(key + "[]", items.ToString()));
+                    }
                 }
                 else
                 {
-                    find.SetValue(val);
+                    //if (typeof(System.Collections.ICollection).IsAssignableFrom(valO.GetType())) 
+                    //{ 
+                    //}
+                    string val = valO.ToString();
+                    Val find = _datas.Find(ab => ab.Key == key);
+                    if (find == null)
+                    {
+                        _datas.Add(new Val(key, val));
+                    }
+                    else
+                    {
+                        find.SetValue(val);
+                    }
                 }
             }
             return this;
@@ -290,6 +471,57 @@ namespace HttpLib
         }
         #endregion
 
+        #region 代理
+
+        IWebProxy _proxy = null;
+
+        /// <summary>
+        /// 代理
+        /// </summary>
+        /// <param name="address">代理服务器的 URI</param>
+        public HttpCore proxy(string address)
+        {
+            _proxy = new WebProxy(address);
+            return this;
+        }
+        /// <summary>
+        /// 代理
+        /// </summary>
+        /// <param name="address">代理服务器的 URI</param>
+        public HttpCore proxy(Uri address)
+        {
+            _proxy = new WebProxy(address);
+            return this;
+        }
+
+        /// <summary>
+        /// 代理
+        /// </summary>
+        /// <param name="host">代理主机的名称</param>
+        /// <param name="port">要使用的 Host 上的端口号</param>
+        public HttpCore proxy(string host, int port)
+        {
+            _proxy = new WebProxy(host, port);
+            return this;
+        }
+        /// <summary>
+        /// 代理
+        /// </summary>
+        /// <param name="host">代理主机的名称</param>
+        /// <param name="port">要使用的 Host 上的端口号</param>
+        /// <param name="username">用户名</param>
+        /// <param name="password">密码</param>
+        public HttpCore proxy(string host, int port, string username, string password)
+        {
+            _proxy = new WebProxy(host, port);
+            if (!string.IsNullOrEmpty(username))
+            {
+                _proxy.Credentials = new NetworkCredential(username, password);
+            }
+            return this;
+        }
+        #endregion
+
         #region 编码
 
         Encoding _encoding = null;
@@ -303,6 +535,7 @@ namespace HttpLib
             _encoding = encoding;
             return this;
         }
+
         #endregion
 
         #region 重定向
@@ -360,6 +593,43 @@ namespace HttpLib
         #endregion
 
         #region 请求
+
+        public delegate bool ActionBool<in T>(T obj);
+        public delegate bool ActionBool2<in T1, in T2>(T1 arg1, T2 arg2);
+
+        ActionBool2<HttpWebResponse, WebResult> _requestBefore = null;
+        ActionBool<HttpWebResponse> _requestBefore2 = null;
+        ActionBool<WebResult> _requestBefore3 = null;
+        /// <summary>
+        /// 请求之前处理
+        /// </summary>
+        /// <param name="action">请求之前处理回调</param>
+        /// <returns>返回true继续 反之取消请求</returns>
+        public HttpCore requestBefore(ActionBool2<HttpWebResponse, WebResult> action)
+        {
+            _requestBefore = action;
+            return this;
+        }
+        /// <summary>
+        /// 请求之前处理
+        /// </summary>
+        /// <param name="action">请求之前处理回调</param>
+        /// <returns>返回true继续 反之取消请求</returns>
+        public HttpCore requestBefore(ActionBool<HttpWebResponse> action)
+        {
+            _requestBefore2 = action;
+            return this;
+        }
+        /// <summary>
+        /// 请求之前处理
+        /// </summary>
+        /// <param name="action">请求之前处理回调</param>
+        /// <returns>返回true继续 反之取消请求</returns>
+        public HttpCore requestBefore(ActionBool<WebResult> action)
+        {
+            _requestBefore3 = action;
+            return this;
+        }
 
         Action<Exception> _fail = null;
         /// <summary>
@@ -535,33 +805,72 @@ namespace HttpLib
             try
             {
                 string urlTemp = url;
-                if (method == HttpMethod.Get && (_datas != null && _datas.Count > 0))
+                if (method == HttpMethod.Get && ((_querys != null && _querys.Count > 0) || (_datas != null && _datas.Count > 0)))
                 {
                     string param = "";
-                    foreach (Val item in _datas)
+
+                    if (_querys != null && _querys.Count > 0)
                     {
-                        if (string.IsNullOrEmpty(param))
+                        foreach (Val item in _querys)
                         {
-                            if (urlTemp.Contains("?"))
+                            if (string.IsNullOrEmpty(param))
                             {
-                                param += "&" + item.Key + "=" + item.Value;
+                                if (urlTemp.Contains("?"))
+                                {
+                                    param += "&" + item.Key + "=" + item.Value;
+                                }
+                                else
+                                {
+                                    param = "?" + item.Key + "=" + item.Value;
+                                }
                             }
                             else
                             {
-                                param = "?" + item.Key + "=" + item.Value;
+                                param += "&" + item.Key + "=" + item.Value;
                             }
                         }
-                        else
+                    }
+
+                    if (_datas != null && _datas.Count > 0)
+                    {
+                        foreach (Val item in _datas)
                         {
-                            param += "&" + item.Key + "=" + item.Value;
+                            if (string.IsNullOrEmpty(param))
+                            {
+                                if (urlTemp.Contains("?"))
+                                {
+                                    param += "&" + item.Key + "=" + item.Value;
+                                }
+                                else
+                                {
+                                    param = "?" + item.Key + "=" + item.Value;
+                                }
+                            }
+                            else
+                            {
+                                param += "&" + item.Key + "=" + item.Value;
+                            }
                         }
                     }
+
                     urlTemp += param;
                 }
                 Uri uri = new Uri(urlTemp);
                 CookieContainer cookies = new CookieContainer();
 
+                #region SSL
+                if (uri.Scheme.ToUpper() == "HTTPS")
+                {
+                    ServicePointManager.ServerCertificateValidationCallback = (_s, certificate, chain, sslPolicyErrors) =>
+                    {
+                        return true;
+                    };
+                }
+                #endregion
+
+
                 HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);
+                request.Proxy = _proxy;
                 request.Method = method.ToString().ToUpper();
                 request.AutomaticDecompression = DecompressionMethods.GZip;
                 request.CookieContainer = cookies;
@@ -578,15 +887,6 @@ namespace HttpLib
                 request.Credentials = CredentialCache.DefaultCredentials;
                 request.UserAgent = "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; Trident/4.0; QQWubi 133; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; CIBA; InfoPath.2)";
 
-                #region SSL
-                if (uri.Scheme.ToUpper() == "HTTPS")
-                {
-                    ServicePointManager.ServerCertificateValidationCallback = (_s, certificate, chain, sslPolicyErrors) =>
-                    {
-                        return true;
-                    };
-                }
-                #endregion
 
                 bool isContentType = false;
                 if (_headers != null && _headers.Count > 0)
@@ -728,6 +1028,13 @@ namespace HttpLib
 
                 using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
                 {
+                    if (_requestBefore2 != null)
+                    {
+                        if (!_requestBefore2(response))
+                        {
+                            return null;
+                        }
+                    }
                     WebResult _web = new WebResult
                     {
                         StatusCode = (int)response.StatusCode,
@@ -805,6 +1112,21 @@ namespace HttpLib
                     _web.Cookie = cookie;
 
                     #endregion
+
+                    if (_requestBefore != null)
+                    {
+                        if (!_requestBefore(response, _web))
+                        {
+                            return null;
+                        }
+                    }
+                    if (_requestBefore3 != null)
+                    {
+                        if (!_requestBefore3(_web))
+                        {
+                            return null;
+                        }
+                    }
 
                     switch (resultMode)
                     {
@@ -951,7 +1273,6 @@ namespace HttpLib
         #endregion
 
         #region 请求流-帮助
-
         private string RandomString(int length)
         {
             string allowedChars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789";
