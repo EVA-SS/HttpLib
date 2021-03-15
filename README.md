@@ -123,16 +123,23 @@ fail((Exception e) => {
 ### 异步请求
 ```
 success((WebResult web,string result) => {
-}).RequestAsync();
+	//放在最后
+});
+
+requestAsync();//主动调用异步方法
 ```
 ### 同步获取
 ```
-RequestByString();
+requestNone();//不下载流
+request();//返回字符串
+requestData();//返回字节
 ```
 
 # 实例1
 >异步
 ```
+Config.UserAgent = "测试的UserAgent";
+
 Http.Get("https://www.baidu.com/s")
 .data(new { wd = "GitHub - Haku-Men HttpLib", params_ = "关键字参数" })
 .redirect(true)
@@ -140,9 +147,12 @@ Http.Get("https://www.baidu.com/s")
 	double 进度 = (bytesSent * 1.0) / (totalBytes * 1.0);
 	Console.Write("{0}% 上传", (Math.Round(进度, 2) * 100.0));
 })
-.requestProgress((bytesSent, totalBytes) => {
-	double 进度 = (bytesSent * 1.0) / (totalBytes * 1.0);
-	Console.Write("{0}% 上传", (Math.Round(进度, 2) * 100.0));
+.responseProgress((bytesSent, totalBytes) => {
+	if (totalBytes.HasValue)
+	{
+		double 进度 = (bytesSent * 1.0) / (totalBytes.Value * 1.0);
+		Console.Write("{0}% 下载", (Math.Round(进度, 2) * 100.0));
+	}
 })
 .fail((Exception e) => {
 	Console.Write(e.GetType());
@@ -150,7 +160,7 @@ Http.Get("https://www.baidu.com/s")
 })
 .success((WebResult web,string result) => {
 	Console.Write(result);
-}).RequestAsync();
+});
 ```
 
 # 实例2 
@@ -163,7 +173,7 @@ string result = Http.Get("https://www.baidu.com/s")
 	Console.Write(e.GetType());
 	Console.Write(e.Message);
 })
-.RequestByString();
+.request();
 Console.Write(result);
 ```
 

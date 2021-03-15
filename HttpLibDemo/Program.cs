@@ -8,6 +8,8 @@ namespace HttpLibDemo
     {
         static void Main(string[] args)
         {
+            Config.fail += Config_fail;//全局异常
+
             List<Val> headerss = new List<Val> {
                 new Val("accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"),
                 new Val("user-agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.183 Safari/537.36 Edg/86.0.622.63"),
@@ -44,15 +46,15 @@ namespace HttpLibDemo
                    {
                        return true; //继续请求
                    })
-                   .success((WebResult r, string a) =>
-                   {
-                       Console.SetCursorPosition(0, 5);
-                       Console.Write(a);
-                   }).fail((Exception ez) =>
+                   .fail((Exception ez) =>
                 {
                     Console.Write(ez.GetType());
                     Console.Write(ez.Message);
-                }).RequestAsync();
+                }).success((WebResult r, string a) =>
+                {
+                    Console.SetCursorPosition(0, 5);
+                    Console.Write(a);
+                });
 
             Console.ReadLine();
             return;
@@ -99,6 +101,13 @@ namespace HttpLibDemo
                 });
             Console.ReadLine();
         }
+
+        private static void Config_fail(HttpCore core, WebResult result, Exception err)
+        {
+            Console.Write(err.GetType());
+            Console.Write(err.Message);
+        }
+
         public static string CountSize(double Size)
         {
             string houzui = "B";

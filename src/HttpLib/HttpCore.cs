@@ -119,15 +119,19 @@ namespace HttpLib
                 {
                     key = key.TrimEnd('_');
                 }
-                string val = item.GetValue(data, null).ToString();
-                Val find = _querys.Find(ab => ab.Key == key);
-                if (find == null)
+                object valO = item.GetValue(data, null);
+                if (valO != null)
                 {
-                    _querys.Add(new Val(key, val));
-                }
-                else
-                {
-                    find.SetValue(val);
+                    string val = valO.ToString();
+                    Val find = _querys.Find(ab => ab.Key == key);
+                    if (find == null)
+                    {
+                        _querys.Add(new Val(key, val));
+                    }
+                    else
+                    {
+                        find.SetValue(val);
+                    }
                 }
             }
             return this;
@@ -283,33 +287,36 @@ namespace HttpLib
                     key = key.TrimEnd('_');
                 }
                 object valO = item.GetValue(data, null);
-                string tname = valO.GetType().Name;
-                if (typeof(System.Collections.IList).IsAssignableFrom(valO.GetType()))
+                if (valO != null)
                 {
-                    if (this.method == HttpMethod.Get)
+                    string tname = valO.GetType().Name;
+                    if (typeof(System.Collections.IList).IsAssignableFrom(valO.GetType()))
                     {
-                        throw new Exception("Get不支持数组");
-                    }
-                    System.Collections.IList list = valO as System.Collections.IList;
-                    foreach (var items in list)
-                    {
-                        _datas.Add(new Val(key + "[]", items.ToString()));
-                    }
-                }
-                else
-                {
-                    //if (typeof(System.Collections.ICollection).IsAssignableFrom(valO.GetType())) 
-                    //{ 
-                    //}
-                    string val = valO.ToString();
-                    Val find = _datas.Find(ab => ab.Key == key);
-                    if (find == null)
-                    {
-                        _datas.Add(new Val(key, val));
+                        if (this.method == HttpMethod.Get)
+                        {
+                            throw new Exception("Get不支持数组");
+                        }
+                        System.Collections.IList list = valO as System.Collections.IList;
+                        foreach (var items in list)
+                        {
+                            _datas.Add(new Val(key + "[]", items.ToString()));
+                        }
                     }
                     else
                     {
-                        find.SetValue(val);
+                        //if (typeof(System.Collections.ICollection).IsAssignableFrom(valO.GetType())) 
+                        //{ 
+                        //}
+                        string val = valO.ToString();
+                        Val find = _datas.Find(ab => ab.Key == key);
+                        if (find == null)
+                        {
+                            _datas.Add(new Val(key, val));
+                        }
+                        else
+                        {
+                            find.SetValue(val);
+                        }
                     }
                 }
             }
@@ -641,6 +648,33 @@ namespace HttpLib
             return this;
         }
 
+
+        Action<int, Exception> _fail2 = null;
+
+        /// <summary>
+        /// 接口调用失败的回调函数
+        /// </summary>
+        /// <param name="action">Http状态代码+错误</param>
+        /// <returns></returns>
+        public HttpCore fail(Action<int, Exception> action)
+        {
+            _fail2 = action;
+            return this;
+        }
+
+        Action<WebResult, Exception> _fail3 = null;
+
+        /// <summary>
+        /// 接口调用失败的回调函数
+        /// </summary>
+        /// <param name="action">错误Http响应头+错误</param>
+        /// <returns></returns>
+        public HttpCore fail(Action<WebResult, Exception> action)
+        {
+            _fail3 = action;
+            return this;
+        }
+
         #region 接口调用成功的回调函数
 
         int resultMode = -1;
@@ -667,6 +701,7 @@ namespace HttpLib
         {
             resultMode = 1;
             _success1 = action;
+            this.requestAsync();
             return this;
         }
 
@@ -692,7 +727,7 @@ namespace HttpLib
         /// <summary>
         /// 异步请求
         /// </summary>
-        public Task RequestAsync()
+        public Task requestAsync()
         {
 #if NET40
             return Task.Factory.StartNew(() =>
@@ -759,7 +794,7 @@ namespace HttpLib
         /// 同步请求
         /// </summary>
         /// <returns>不下载流</returns>
-        public WebResult RequestByNone()
+        public WebResult requestNone()
         {
             TaskResult val = Go(0);
             if (val != null)
@@ -769,11 +804,12 @@ namespace HttpLib
             return null;
         }
 
+
         /// <summary>
         /// 同步请求
         /// </summary>
         /// <returns>字节类型</returns>
-        public byte[] RequestByByte()
+        public byte[] requestData()
         {
             TaskResult val = Go(2);
             if (val != null)
@@ -786,14 +822,46 @@ namespace HttpLib
         /// <summary>
         /// 同步请求
         /// </summary>
+        /// <returns>字节类型</returns>
+        public byte[] requestData(out WebResult result)
+        {
+            TaskResult val = Go(2);
+            if (val != null)
+            {
+                result = val.web;
+                return val.val != null ? (byte[])val.val : null;
+            }
+            result = null;
+            return null;
+        }
+
+        /// <summary>
+        /// 同步请求
+        /// </summary>
         /// <returns>字符串类型</returns>
-        public string RequestByString()
+        public string request()
         {
             TaskResult val = Go(1);
             if (val != null)
             {
                 return val.val != null ? val.val.ToString() : null;
             }
+            return null;
+        }
+
+        /// <summary>
+        /// 同步请求
+        /// </summary>
+        /// <returns>字节类型</returns>
+        public string request(out WebResult result)
+        {
+            TaskResult val = Go(1);
+            if (val != null)
+            {
+                result = val.web;
+                return val.val != null ? val.val.ToString() : null;
+            }
+            result = null;
             return null;
         }
 
@@ -868,14 +936,28 @@ namespace HttpLib
                 }
                 #endregion
 
-
                 HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(uri);
-                request.Proxy = _proxy;
+                if (_proxy != null)
+                {
+                    request.Proxy = _proxy;
+                }
+                else
+                {
+                    request.Proxy = Config._proxy;
+                }
                 request.Method = method.ToString().ToUpper();
-                request.AutomaticDecompression = DecompressionMethods.GZip;
+                request.AutomaticDecompression = Config.DecompressionMethod;
                 request.CookieContainer = cookies;
                 request.Host = uri.Host;
-                request.AllowAutoRedirect = _redirect;
+
+                if (_redirect)
+                {
+                    request.AllowAutoRedirect = _redirect;
+                }
+                else
+                {
+                    request.AllowAutoRedirect = Config.Redirect;
+                }
 
                 Encoding encoding = (_encoding != null ? _encoding : Encoding.UTF8);
 
@@ -885,7 +967,7 @@ namespace HttpLib
                 }
 
                 request.Credentials = CredentialCache.DefaultCredentials;
-                request.UserAgent = "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; Trident/4.0; QQWubi 133; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; CIBA; InfoPath.2)";
+                request.UserAgent = Config.UserAgent;
 
 
                 bool isContentType = false;
@@ -1035,83 +1117,7 @@ namespace HttpLib
                             return null;
                         }
                     }
-                    WebResult _web = new WebResult
-                    {
-                        StatusCode = (int)response.StatusCode,
-                        Type = response.ContentType,
-                        ServerHeader = string.Format("{0} {1} {2} {3} Ver:{4}.{5}", response.ResponseUri.Scheme.ToUpper(), (int)response.StatusCode, response.StatusCode, response.Server, response.ProtocolVersion.Major, response.ProtocolVersion.Minor),
-                        IP = getIP(response.ResponseUri),
-                        DNS = response.ResponseUri.DnsSafeHost,
-                        AbsoluteUri = response.ResponseUri.AbsoluteUri,
-                        Headers = new List<Val>()
-                    };
-                    if (response.ContentLength > 0)
-                    {
-                        responseMax = response.ContentLength;
-                        if (_responseProgress != null)
-                        {
-                            _responseProgress(responseMin, responseMax);
-                        }
-                    }
-
-                    #region 获取头信息
-
-                    string header = "";
-                    foreach (string str in response.Headers.AllKeys)
-                    {
-                        _web.Headers.Add(new Val(str, response.Headers[str]));
-                        header = header + str + ":" + response.Headers[str] + "\r\n";
-                        if (str == "Content-Disposition")
-                        {
-                            string Disposition = response.Headers[str];
-                            if (!string.IsNullOrEmpty(Disposition))
-                            {
-                                string filename = "";
-                                filename = Disposition.Substring(Disposition.IndexOf("filename=") + 9);
-                                if (filename.Contains(";"))
-                                {
-                                    filename = filename.Substring(0, filename.IndexOf(";"));
-                                    if (filename.EndsWith("\""))
-                                    {
-                                        filename = filename.Substring(1, filename.Length - 2);
-                                    }
-                                }
-                                _web.FileName = filename;
-                            }
-                        }
-                        else if (str == "Location")
-                        {
-                            string Location = response.Headers[str];
-                            if (!string.IsNullOrEmpty(Location))
-                            {
-                                _web.Location = Location;
-                            }
-                        }
-                        else if (str == "Set-Cookie")
-                        {
-                            string SetCookie = response.Headers[str];
-                            if (!string.IsNullOrEmpty(SetCookie))
-                            {
-                                if (_web.SetCookie == null)
-                                {
-                                    _web.SetCookie = SetCookie;
-                                }
-                                else
-                                {
-                                    _web.SetCookie += ";" + SetCookie;
-                                }
-                            }
-                        }
-                    }
-                    string cookie = "";
-                    foreach (Cookie str in response.Cookies)
-                    {
-                        cookie = cookie + str.Name + "=" + str.Value + ";";
-                    }
-                    _web.Header = header;
-                    _web.Cookie = cookie;
-
-                    #endregion
+                    WebResult _web = GetWebResult(response);
 
                     if (_requestBefore != null)
                     {
@@ -1157,11 +1163,42 @@ namespace HttpLib
                     }
                 }
             }
-            catch (Exception ez)
+            catch (Exception err)
             {
-                if (_fail != null)
+                if (err is WebException)
                 {
-                    _fail(ez);
+                    Config.OnFail(this, GetWebResult((err as WebException).Response as HttpWebResponse), err);
+
+                    //materialL.Color = Color.Red;
+                    if (_fail3 != null)
+                    {
+                        _fail3(GetWebResult((err as WebException).Response as HttpWebResponse), err);
+                    }
+                    else if (_fail2 != null)
+                    {
+                        _fail2((int)((err as WebException).Response as HttpWebResponse).StatusCode, err);
+                    }
+                    else if (_fail != null)
+                    {
+                        _fail(err);
+                    }
+                }
+                else
+                {
+                    Config.OnFail(this, null, err);
+
+                    if (_fail3 != null)
+                    {
+                        _fail3(null, err);
+                    }
+                    else if (_fail2 != null)
+                    {
+                        _fail2(-1, err);
+                    }
+                    else if (_fail != null)
+                    {
+                        _fail(err);
+                    }
                 }
             }
             return null;
@@ -1179,6 +1216,7 @@ namespace HttpLib
         }
 
         #region 请求头-帮助
+
         private string GetTFName(string strItem, string replace = "-")
         {
             string strItemTarget = "";  //目标字符串
@@ -1273,6 +1311,7 @@ namespace HttpLib
         #endregion
 
         #region 请求流-帮助
+
         private string RandomString(int length)
         {
             string allowedChars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789";
@@ -1315,6 +1354,89 @@ namespace HttpLib
                     return _ip;
                 }
             }
+        }
+
+        public WebResult GetWebResult(HttpWebResponse response)
+        {
+            WebResult _web = new WebResult
+            {
+                StatusCode = (int)response.StatusCode,
+                Type = response.ContentType,
+                ServerHeader = string.Format("{0} {1} {2} {3} Ver:{4}.{5}", response.ResponseUri.Scheme.ToUpper(), (int)response.StatusCode, response.StatusCode, response.Server, response.ProtocolVersion.Major, response.ProtocolVersion.Minor),
+                IP = getIP(response.ResponseUri),
+                DNS = response.ResponseUri.DnsSafeHost,
+                AbsoluteUri = response.ResponseUri.AbsoluteUri,
+                Headers = new List<Val>()
+            };
+            if (response.ContentLength > 0)
+            {
+                responseMax = response.ContentLength;
+                if (_responseProgress != null)
+                {
+                    _responseProgress(responseMin, responseMax);
+                }
+            }
+
+            #region 获取头信息
+
+            string header = "";
+            foreach (string str in response.Headers.AllKeys)
+            {
+                _web.Headers.Add(new Val(str, response.Headers[str]));
+                header = header + str + ":" + response.Headers[str] + "\r\n";
+                if (str == "Content-Disposition")
+                {
+                    string Disposition = response.Headers[str];
+                    if (!string.IsNullOrEmpty(Disposition))
+                    {
+                        string filename = "";
+                        filename = Disposition.Substring(Disposition.IndexOf("filename=") + 9);
+                        if (filename.Contains(";"))
+                        {
+                            filename = filename.Substring(0, filename.IndexOf(";"));
+                            if (filename.EndsWith("\""))
+                            {
+                                filename = filename.Substring(1, filename.Length - 2);
+                            }
+                        }
+                        _web.FileName = filename;
+                    }
+                }
+                else if (str == "Location")
+                {
+                    string Location = response.Headers[str];
+                    if (!string.IsNullOrEmpty(Location))
+                    {
+                        _web.Location = Location;
+                    }
+                }
+                else if (str == "Set-Cookie")
+                {
+                    string SetCookie = response.Headers[str];
+                    if (!string.IsNullOrEmpty(SetCookie))
+                    {
+                        if (_web.SetCookie == null)
+                        {
+                            _web.SetCookie = SetCookie;
+                        }
+                        else
+                        {
+                            _web.SetCookie += ";" + SetCookie;
+                        }
+                    }
+                }
+            }
+            string cookie = "";
+            foreach (Cookie str in response.Cookies)
+            {
+                cookie = cookie + str.Name + "=" + str.Value + ";";
+            }
+            _web.Header = header;
+            _web.Cookie = cookie;
+
+            #endregion
+
+            return _web;
         }
 
         byte[] DownStream(WebResult _web, Stream stream)
@@ -1454,5 +1576,116 @@ namespace HttpLib
         #endregion
 
         #endregion
+
+        #region 对外参数
+
+        /// <summary>
+        /// 请求URL
+        /// </summary>
+        public string Url
+        {
+            get => url;
+        }
+
+        /// <summary>
+        /// 请求URL
+        /// </summary>
+        public string AbsoluteUrl
+        {
+            get
+            {
+                string urlTemp = url;
+                if (method == HttpMethod.Get && ((_querys != null && _querys.Count > 0) || (_datas != null && _datas.Count > 0)))
+                {
+                    string param = "";
+
+                    if (_querys != null && _querys.Count > 0)
+                    {
+                        foreach (Val item in _querys)
+                        {
+                            if (string.IsNullOrEmpty(param))
+                            {
+                                if (urlTemp.Contains("?"))
+                                {
+                                    param += "&" + item.Key + "=" + item.Value;
+                                }
+                                else
+                                {
+                                    param = "?" + item.Key + "=" + item.Value;
+                                }
+                            }
+                            else
+                            {
+                                param += "&" + item.Key + "=" + item.Value;
+                            }
+                        }
+                    }
+
+                    if (_datas != null && _datas.Count > 0)
+                    {
+                        foreach (Val item in _datas)
+                        {
+                            if (string.IsNullOrEmpty(param))
+                            {
+                                if (urlTemp.Contains("?"))
+                                {
+                                    param += "&" + item.Key + "=" + item.Value;
+                                }
+                                else
+                                {
+                                    param = "?" + item.Key + "=" + item.Value;
+                                }
+                            }
+                            else
+                            {
+                                param += "&" + item.Key + "=" + item.Value;
+                            }
+                        }
+                    }
+
+                    urlTemp += param;
+                }
+                return urlTemp;
+            }
+        }
+
+        /// <summary>
+        /// 请求类型
+        /// </summary>
+        public HttpMethod Method
+        {
+            get => method;
+        }
+
+        /// <summary>
+        /// 请求URL参数
+        /// </summary>
+        public List<Val> Querys
+        {
+            get => _querys;
+        }
+
+        /// <summary>
+        /// 请求参数
+        /// </summary>
+        public List<Val> Data
+        {
+            get => _datas;
+        }
+
+        /// <summary>
+        /// 请求参数
+        /// </summary>
+        public string DataStr
+        {
+            get => _datastr;
+        }
+
+        #endregion
+
+        public override string ToString()
+        {
+            return url;
+        }
     }
 }
