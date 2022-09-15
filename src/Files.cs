@@ -20,13 +20,13 @@ namespace HttpLib
         /// <param name="fileName">文件名称</param>
         /// <param name="contentType">文件类型</param>
         /// <param name="stream">字节流</param>
-        public Files(string name, string fileName, string contentType, Stream stream)
+        public Files(string name, string fileName, string contentType, byte[] data)
         {
             this.Name = name;
             this.FileName = fileName;
             this.ContentType = contentType;
-            this.Size = stream.Length;
-            this.Stream = stream;
+            this.Size = data.Length;
+            this.Stream = new MemoryStream(data);
         }
 
         /// <summary>
@@ -37,23 +37,9 @@ namespace HttpLib
         public Files(string name, string fullName)
         {
             this.Name = name;
-            FileInfo fileInfo = new FileInfo(fullName);
+            var fileInfo = new FileInfo(fullName);
             this.FileName = fileInfo.Name;
-
             string contentType = MimeMapping.GetMimeMapping(fullName);
-
-            this.ContentType = contentType;
-            this.Stream = File.OpenRead(fullName);
-            this.Size = this.Stream.Length;
-        }
-        public Files(string name, string fullName, string type)
-        {
-            this.Name = name;
-            FileInfo fileInfo = new FileInfo(fullName);
-            this.FileName = fileInfo.Name;
-
-            string contentType = type;
-
             this.ContentType = contentType;
             this.Stream = File.OpenRead(fullName);
             this.Size = this.Stream.Length;
@@ -63,9 +49,6 @@ namespace HttpLib
         /// 添加文件
         /// </summary>
         /// <param name="fullName">文件路径</param>
-        public Files(string fullName) : this("file", fullName)
-        {
-
-        }
+        public Files(string fullName) : this("file", fullName) { }
     }
 }
