@@ -14,83 +14,33 @@ namespace HttpLib
         /// <summary>
         /// 设置全局请求的头
         /// </summary>
-        /// <param name="val">单个头</param>
-        public static void header(Val val)
-        {
-            if (_headers == null)
-            {
-                _headers = new List<Val> { val };
-            }
-            else
-            {
-                Val find = _headers.Find(ab => ab.Key == val.Key);
-                if (find == null)
-                {
-                    if (val != null)
-                    {
-                        _headers.Add(val);
-                    }
-                }
-                else
-                {
-                    if (val != null)
-                    {
-                        find.SetValue(val.Value);
-                    }
-                    else
-                    { _headers.Remove(find); }
-                }
-            }
-        }
+        /// <param name="vals">多个请求头</param>
         public static void header(params Val[] vals)
         {
-            if (_headers == null)
-            {
-                _headers = new List<Val>();
-            }
-            else
-            {
-                foreach (var val in vals)
-                {
-                    setVals(_headers, val);
-                }
-            }
+            foreach (var val in vals)
+                setVals(ref _headers, val);
         }
-        public static void setVals(List<Val> obj, Val val)
+
+        public static void setVals(ref List<Val> obj, Val val)
         {
-            Val find = obj.Find(ab => ab.Key == val.Key);
-            if (find == null)
-            {
-                if (val != null)
-                {
-                    obj.Add(val);
-                }
-            }
-            else
-            {
-                if (val != null)
-                {
-                    find.SetValue(val.Value);
-                }
-                else
-                { obj.Remove(find); }
-            }
+            setVals(ref obj, val.Key, val.Value);
         }
-        public static void setVals(List<Val> obj, string key, string val)
+        public static void setVals(ref List<Val> obj, string key, string val)
         {
-            Val find = obj.Find(ab => ab.Key == key);
-            if (find == null)
+            if (obj == null)
             {
-                obj.Add(new Val(key, val));
+                if (val != null)
+                    obj = new List<Val> { new Val(key, val) };
             }
             else
             {
-                if (val != null)
-                {
-                    find.SetValue(val);
-                }
+                Val find = obj.Find(ab => ab.Key == key);
+                if (find == null) obj.Add(new Val(key, val));
                 else
-                { obj.Remove(find); }
+                {
+                    if (val != null) find.SetValue(val);
+                    else obj.Remove(find);
+                }
             }
         }
 
@@ -176,5 +126,6 @@ namespace HttpLib
 
         #endregion
 
+        public static int CacheSize = 4096;
     }
 }
