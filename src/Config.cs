@@ -127,5 +127,14 @@ namespace HttpLib
         #endregion
 
         public static int CacheSize = 4096;
+
+        /// <summary>
+        /// 重试次数
+        /// </summary>
+        public static int RetryCount = 6;
+        /// <summary>
+        /// 超时时长
+        /// </summary>
+        public static int TimeOut = 10000;
     }
 }

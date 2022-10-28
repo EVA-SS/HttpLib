@@ -7,7 +7,7 @@
 		<Nullable>enable</Nullable>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
-		<Version>2.0.8</Version>
+		<Version>2.0.9</Version>
 		<Copyright>Tom 2021</Copyright>
 		<Description>便捷的HttpClient库
 支持GET/POST/PUT/Delete 上传文件/文件参数
@@ -17,10 +17,8 @@
 		<PackageIcon>Logo.png</PackageIcon>
 		<RepositoryUrl>https://github.com/Haku-Men/HttpLib</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageTags>Http;HttpLib;HttpHelper;HttpClient</PackageTags>
-		<PackageReleaseNotes>1.修复了PostMan上传文件问题
-2.新增文件下载
-3.升级框架优化</PackageReleaseNotes>
+		<PackageTags>Http;HttpLib;HttpHelper;HttpClient;HttpDown;M3U8;DownLoad</PackageTags>
+		<PackageReleaseNotes>1.新增断点续传多线程HTTP/M3U8下载</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/Haku-Men/HttpLib</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>

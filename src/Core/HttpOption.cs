@@ -36,7 +36,12 @@ namespace HttpLib
         /// <summary>
         /// 编码
         /// </summary>
-        public Encoding encoding = null;
+        public Encoding encoding = Encoding.UTF8;
+
+        /// <summary>
+        /// 自动编码
+        /// </summary>
+        public bool autoencode = false;
 
         /// <summary>
         /// 请求重定向

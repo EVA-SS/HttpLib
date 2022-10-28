@@ -1,4 +1,4 @@
-# HttpLib 便捷的Http库
+# HttpLib 便捷的Http库 | Http/M3u8多线程下载库
 
 如果你喜欢 HttpLib 项目，请为本项点亮一颗星 ⭐！
 
