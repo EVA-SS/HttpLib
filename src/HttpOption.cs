@@ -2,52 +2,47 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 
 namespace HttpLib
 {
     public class HttpOption
     {
-        public string uri = null;
+        public HttpOption(string _uri) { uri = _uri; }
+        public HttpOption(string _uri, HttpMethod _method)
+        {
+            uri = _uri;
+            method = _method;
+        }
+        public string uri;
         public HttpMethod method = HttpMethod.Get;
-
 
         /// <summary>
         /// Get请求的参数
         /// </summary>
-        public List<Val> query = null;
+        public List<Val>? query = null;
         /// <summary>
         /// 请求的参数
         /// </summary>
-        public List<Val> data = null;
-        public string datastr = null;
-        public List<Files> file = null;
+        public List<Val>? data = null;
+        public string? datastr = null;
+        public List<Files>? file = null;
 
         /// <summary>
         /// 请求头
         /// </summary>
-        public List<Val> header = null;
-
-        /// <summary>
-        /// 代理
-        /// </summary>
-        public IWebProxy proxy = null;
+        public List<Val>? header = null;
 
         /// <summary>
         /// 编码
         /// </summary>
-        public Encoding encoding = Encoding.UTF8;
-
-        /// <summary>
-        /// 自动编码
-        /// </summary>
-        public bool autoencode = false;
+        public Encoding? encoding = null;
 
         /// <summary>
         /// 请求重定向
         /// </summary>
         public bool redirect = false;
-
 
         /// <summary>
         /// 请求超时时长
@@ -55,29 +50,23 @@ namespace HttpLib
         public int timeout = 0;
 
         /// <summary>
-        /// 保活
-        /// </summary>
-        public bool keepAlive = false;
-
-        /// <summary>
         /// 获取域名IP
         /// </summary>
-        public string IP
+        public string? IP
         {
             get
             {
                 try
                 {
                     var _uri = new Uri(uri);
-                    IPAddress ip = null;
-                    if (IPAddress.TryParse(_uri.Host, out ip))
+                    if (IPAddress.TryParse(_uri.Host, out IPAddress? ip))
                     {
                         return ip.ToString();
                     }
                     else
                     {
-                        IPHostEntry hostEntry = Dns.GetHostEntry(_uri.Host);
-                        IPEndPoint ipEndPoint = new IPEndPoint(hostEntry.AddressList[0], 0);
+                        var hostEntry = Dns.GetHostEntry(_uri.Host);
+                        var ipEndPoint = new IPEndPoint(hostEntry.AddressList[0], 0);
                         string _ip = ipEndPoint.Address.ToString();
                         if (_ip.StartsWith("::"))
                         {
@@ -147,7 +136,7 @@ namespace HttpLib
 
         public string FileName(WebResult _web)
         {
-            if (_web.Header.ContainsKey("Content-Disposition"))
+            if (_web.Header != null && _web.Header.ContainsKey("Content-Disposition"))
             {
                 string val = _web.Header["Content-Disposition"];
                 if (!string.IsNullOrEmpty(val))

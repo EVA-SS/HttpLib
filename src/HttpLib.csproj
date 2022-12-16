@@ -1,24 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>net4.0;net4.8;netstandard2.0;netstandard2.1;netcoreapp3.0;netcoreapp3.1;net5.0;net6.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.0;netcoreapp3.1;net6.0;net7.0</TargetFrameworks>
 		<Authors>Tom</Authors>
 		<LangVersion>10.0</LangVersion>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
-		<Version>2.0.9</Version>
-		<Copyright>Tom 2021</Copyright>
+		<Version>1.0.0</Version>
+		<Copyright>Tom 2022</Copyright>
 		<Description>便捷的HttpClient库
 支持GET/POST/PUT/Delete 上传文件/文件参数
 ===========================
-使用HttpWebRequest实现</Description>
+使用HttpClient实现</Description>
 		<PackageId>Tom.HttpLib</PackageId>
 		<PackageIcon>Logo.png</PackageIcon>
 		<RepositoryUrl>https://github.com/Haku-Men/HttpLib</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-		<PackageTags>Http;HttpLib;HttpHelper;HttpClient;HttpDown;M3U8;DownLoad</PackageTags>
-		<PackageReleaseNotes>1.新增断点续传多线程HTTP/M3U8下载</PackageReleaseNotes>
+		<PackageTags>Http;HttpLib;HttpHelper;HttpClient</PackageTags>
+		<PackageReleaseNotes>使用HttpClient重构，不建议在新的框架继续使用HttpWebRequest</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/Haku-Men/HttpLib</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -28,5 +28,8 @@
 	<ItemGroup>
 		<None Include="..\Logo.png" Pack="true" PackagePath="" />
 		<None Include="..\README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
 	</ItemGroup>
 </Project>

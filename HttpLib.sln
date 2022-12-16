@@ -11,7 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpLib", "src\HttpLib.cspr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "download", "examples\download\download.csproj", "{23FDA92E-C67E-401B-9E54-E44BF1E2220D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TDown", "examples\TDown\TDown.csproj", "{EB71932D-C4E7-47B1-9FB9-36604FE648E2}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{840488C6-EC0D-4172-A2D4-36AA731601AA}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,10 +34,6 @@ Global
 		{23FDA92E-C67E-401B-9E54-E44BF1E2220D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{23FDA92E-C67E-401B-9E54-E44BF1E2220D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{23FDA92E-C67E-401B-9E54-E44BF1E2220D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EB71932D-C4E7-47B1-9FB9-36604FE648E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EB71932D-C4E7-47B1-9FB9-36604FE648E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EB71932D-C4E7-47B1-9FB9-36604FE648E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EB71932D-C4E7-47B1-9FB9-36604FE648E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -42,7 +41,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{ECE9ECDB-4E9B-4BAE-A0AE-826F095E7272} = {9F853A87-AAE2-4752-9019-E8D1C43FB10E}
 		{23FDA92E-C67E-401B-9E54-E44BF1E2220D} = {9F853A87-AAE2-4752-9019-E8D1C43FB10E}
-		{EB71932D-C4E7-47B1-9FB9-36604FE648E2} = {9F853A87-AAE2-4752-9019-E8D1C43FB10E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0B251537-182B-4B3E-9549-9AC4710A1C90}

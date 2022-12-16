@@ -7,20 +7,20 @@ Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.6.2/QQ9.6.2.28756.exe")
        .responseProgres((bytesSent, totalBytes) =>
        {
            Console.SetCursorPosition(0, 0);
-           if (totalBytes > 0)
+           if (totalBytes.HasValue)
            {
-               double prog = (bytesSent * 1.0) / (totalBytes * 1.0);
-               Console.Write("{0}% 下载 {1}/{2}                  ", Math.Round(prog * 100.0, 1).ToString("N1"), CountSize(bytesSent), CountSize(totalBytes));
+               double prog = (bytesSent * 1.0) / (totalBytes.Value * 1.0);
+               Console.Write("{0}% 下载 {1}/{2}                  ", Math.Round(prog * 100.0, 1).ToString("N1"), CountSize(bytesSent), CountSize(totalBytes.Value));
            }
            else
            {
                Console.Write("{0} 下载            ", CountSize(bytesSent));
            }
-       }).download(@"C:\Users\admin\Desktop", "qq.exe").ContinueWith(savapath =>
+       }).download(@"C:\Users\admin\Desktop").ContinueWith(savapath =>
        {
            if (savapath.Result != null)
            {
-               Console.WriteLine("下载成功保存至:" + savapath.Result);
+               Console.WriteLine("下载成功保存至:" + savapath.Result.Data);
            }
            else
            {

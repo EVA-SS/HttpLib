@@ -66,7 +66,7 @@ namespace HttpLib
                 fileName = GetFileName(fileName);
                 for (int i = 0; i < fileName.Length; i++)
                 {
-                    if (fileName[i] == '.' && _mappings.TryGetValue(fileName.Substring(i), out string result))
+                    if (fileName[i] == '.' && _mappings.TryGetValue(fileName.Substring(i), out string? result))
                     {
                         return result;
                     }
