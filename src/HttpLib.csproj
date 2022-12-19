@@ -10,10 +10,10 @@
 		<Version>1.0.0</Version>
 		<Copyright>Tom 2022</Copyright>
 		<Description>便捷的HttpClient库
-支持GET/POST/PUT/Delete 上传文件/文件参数
+支持GET/POST/PUT/Delete，上传与下载的进度监控，既可以上传文件等二进制数据，也可以上传表单键值对
 ===========================
-使用HttpClient实现</Description>
-		<PackageId>Tom.HttpLib</PackageId>
+使用HttpClient</Description>
+		<PackageId>Tom.HttpLib.Client</PackageId>
 		<PackageIcon>Logo.png</PackageIcon>
 		<RepositoryUrl>https://github.com/Haku-Men/HttpLib</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -108,12 +107,15 @@ namespace HttpLib
                             param_.Add(item.ToString());
                     }
                 }
-                if (query != null && query.Count > 0)
+                else
                 {
                     if (query != null && query.Count > 0)
                     {
-                        foreach (var item in query)
-                            param_.Add(item.ToString());
+                        if (query != null && query.Count > 0)
+                        {
+                            foreach (var item in query)
+                                param_.Add(item.ToString());
+                        }
                     }
                 }
 
@@ -123,7 +125,7 @@ namespace HttpLib
                 {
                     if (uri_temp.Contains("?"))
                     {
-                        return uri + string.Join("&", param_);
+                        return uri + "&" + string.Join("&", param_);
                     }
                     else
                     {
@@ -132,31 +134,6 @@ namespace HttpLib
                 }
                 else { return uri; }
             }
-        }
-
-        public string FileName(WebResult _web)
-        {
-            if (_web.Header != null && _web.Header.ContainsKey("Content-Disposition"))
-            {
-                string val = _web.Header["Content-Disposition"];
-                if (!string.IsNullOrEmpty(val))
-                {
-                    var filename = val.Substring(val.ToUpper().IndexOf("filename=") + 9);
-                    if (filename.Contains(";"))
-                    {
-                        filename = filename.Substring(0, filename.IndexOf(";"));
-                        if (filename.EndsWith("\""))
-                        {
-                            filename = filename.Substring(1, filename.Length - 2);
-                        }
-                    }
-                    return filename;
-                }
-            }
-            var _uri = new Uri(uri);
-            if (_uri.Query.Length > 0)
-                return Path.GetFileName(uri.Substring(0, uri.Length - _uri.Query.Length));
-            return Path.GetFileName(uri);
         }
 
         public override string ToString()

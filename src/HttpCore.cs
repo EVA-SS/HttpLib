@@ -35,7 +35,7 @@ namespace HttpLib
         {
             option.query ??= new List<Val>(vals.Length);
             foreach (var val in vals)
-                Config.setVals(ref option.query, val);
+                HttpCoreLib.AddVal(ref option.query, val);
             return this;
         }
 
@@ -47,7 +47,7 @@ namespace HttpLib
         {
             option.query ??= new List<Val>(vals.Count);
             foreach (var val in vals)
-                Config.setVals(ref option.query, val);
+                HttpCoreLib.AddVal(ref option.query, val);
             return this;
         }
 
@@ -59,7 +59,7 @@ namespace HttpLib
         public HttpCore query(string key, string val)
         {
             option.query ??= new List<Val>();
-            Config.setVals(ref option.query, key, val);
+            HttpCoreLib.AddVal(ref option.query, key, val);
             return this;
         }
 
@@ -71,7 +71,7 @@ namespace HttpLib
         {
             option.query ??= new List<Val>(vals.Count);
             foreach (var item in vals)
-                Config.setVals(ref option.query, item.Key, item.Value);
+                HttpCoreLib.AddVal(ref option.query, item.Key, item.Value);
             return this;
         }
 
@@ -82,12 +82,15 @@ namespace HttpLib
         public HttpCore query(object data)
         {
             var properties = data.GetType().GetProperties();
-            option.query ??= new List<Val>(properties.Length);
-            foreach (var item in properties)
+            if (properties != null)
             {
-                string key = item.Name;
-                object val = item.GetValue(data, null);
-                if (val != null) Config.setVals(ref option.query, key, val.ToString());
+                option.query ??= new List<Val>(properties.Length);
+                foreach (var item in properties)
+                {
+                    string key = item.Name;
+                    var val = item.GetValue(data, null);
+                    if (val != null) HttpCoreLib.AddVal(ref option.query, key, val.ToString());
+                }
             }
             return this;
         }
@@ -104,7 +107,7 @@ namespace HttpLib
         {
             option.data ??= new List<Val>(vals.Length);
             foreach (var val in vals)
-                Config.setVals(ref option.data, val);
+                HttpCoreLib.AddVal(ref option.data, val);
             return this;
         }
 
@@ -116,7 +119,7 @@ namespace HttpLib
         {
             option.data ??= new List<Val>(vals.Count);
             foreach (var val in vals)
-                Config.setVals(ref option.data, val);
+                HttpCoreLib.AddVal(ref option.data, val);
             return this;
         }
 
@@ -128,7 +131,7 @@ namespace HttpLib
         public HttpCore data(string key, string val)
         {
             option.data ??= new List<Val>();
-            Config.setVals(ref option.data, key, val);
+            HttpCoreLib.AddVal(ref option.data, key, val);
             return this;
         }
 
@@ -140,7 +143,7 @@ namespace HttpLib
         {
             option.data ??= new List<Val>(vals.Count);
             foreach (var val in vals)
-                Config.setVals(ref option.data, val.Key, val.Value);
+                HttpCoreLib.AddVal(ref option.data, val.Key, val.Value);
             return this;
         }
 
@@ -152,12 +155,12 @@ namespace HttpLib
         {
             if (option.method == HttpMethod.Get)
             {
-                throw new Exception("Get不支持数组");
+                throw new Exception("GET不支持数组");
             }
             option.data ??= new List<Val>(vals.Count);
             foreach (var val in vals)
                 foreach (var items in val.Value)
-                    Config.setVals(ref option.data, val.Key + "[]", items);
+                    HttpCoreLib.AddVal(ref option.data, val.Key + "[]", items);
             return this;
         }
 
@@ -169,22 +172,28 @@ namespace HttpLib
         {
             if (option.method == HttpMethod.Get)
             {
-                throw new Exception("Get不支持数组");
+                throw new Exception("GET不支持数组");
             }
             option.data ??= new List<Val>(vals.Count);
             foreach (var val in vals)
                 foreach (var items in val.Value)
-                    Config.setVals(ref option.data, val.Key + "[]", items);
+                    HttpCoreLib.AddVal(ref option.data, val.Key + "[]", items);
             return this;
         }
 
         /// <summary>
         /// 请求的参数
         /// </summary>
-        /// <param name="val">application/text</param>
+        /// <param name="val">text/plain</param>
         public HttpCore data(string val)
         {
             option.datastr = val;
+            return this;
+        }
+        public HttpCore datastr(string val, string contentType = "text/plain")
+        {
+            option.datastr = val;
+            header("Content-Type", contentType);
             return this;
         }
 
@@ -195,35 +204,38 @@ namespace HttpLib
         public HttpCore data(object data)
         {
             var properties = data.GetType().GetProperties();
-            option.data ??= new List<Val>(properties.Length);
-            foreach (var item in properties)
+            if (properties != null)
             {
-                string key = item.Name;
-                object val = item.GetValue(data, null);
-                if (val != null)
+                option.data ??= new List<Val>(properties.Length);
+                foreach (var item in properties)
                 {
-                    if (val is IEnumerable vals)
+                    string key = item.Name;
+                    var val = item.GetValue(data, null);
+                    if (val != null)
                     {
-                        if (option.method == HttpMethod.Get)
+                        if (val is IEnumerable vals)
                         {
-                            var listval = new List<string>();
-                            foreach (var items in vals)
+                            if (option.method == HttpMethod.Get)
                             {
-                                listval.Add(items.ToString());
+                                var listval = new List<string?>();
+                                foreach (var items in vals)
+                                {
+                                    if (items != null) listval.Add(items.ToString());
+                                }
+                                HttpCoreLib.AddVal(ref option.data, key, string.Join(",", listval));
                             }
-                            Config.setVals(ref option.data, key, string.Join(",", listval));
+                            else
+                            {
+                                foreach (var items in vals)
+                                {
+                                    if (items != null) HttpCoreLib.AddVal(ref option.data, key + "[]", items.ToString());
+                                }
+                            }
                         }
                         else
                         {
-                            foreach (var items in vals)
-                            {
-                                Config.setVals(ref option.data, key + "[]", items.ToString());
-                            }
+                            HttpCoreLib.AddVal(ref option.data, key, val.ToString());
                         }
-                    }
-                    else
-                    {
-                        Config.setVals(ref option.data, key, val.ToString());
                     }
                 }
             }
@@ -254,6 +266,42 @@ namespace HttpLib
             return this;
         }
 
+        /// <summary>
+        /// 文件上传
+        /// </summary>
+        /// <param name="vals">多个文件</param>
+        public HttpCore file(params string[] vals)
+        {
+            option.file ??= new List<Files>(vals.Length);
+            foreach (var item in vals)
+            {
+                option.file.Add(new Files(item));
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// 文件上传
+        /// </summary>
+        /// <param name="vals">多个文件</param>
+        public HttpCore file(params Files[] vals)
+        {
+            option.file ??= new List<Files>(vals.Length);
+            option.file.AddRange(vals);
+            return this;
+        }
+
+        /// <summary>
+        /// 文件上传
+        /// </summary>
+        /// <param name="vals">多个文件</param>
+        public HttpCore file(List<Files> vals)
+        {
+            option.file ??= new List<Files>(vals.Count);
+            option.file.AddRange(vals);
+            return this;
+        }
+
         #endregion
 
         #endregion
@@ -268,7 +316,7 @@ namespace HttpLib
         {
             option.header ??= new List<Val>(vals.Length);
             foreach (var item in vals)
-                Config.setVals(ref option.header, item);
+                HttpCoreLib.AddVal(ref option.header, item);
             return this;
         }
 
@@ -280,7 +328,7 @@ namespace HttpLib
         {
             option.header ??= new List<Val>(vals.Count);
             foreach (var item in vals)
-                Config.setVals(ref option.header, item);
+                HttpCoreLib.AddVal(ref option.header, item);
             return this;
         }
 
@@ -292,7 +340,7 @@ namespace HttpLib
         public HttpCore header(string key, string val)
         {
             option.header ??= new List<Val>();
-            Config.setVals(ref option.header, key, val);
+            HttpCoreLib.AddVal(ref option.header, key, val);
             return this;
         }
 
@@ -304,7 +352,7 @@ namespace HttpLib
         {
             option.header ??= new List<Val>(vals.Count);
             foreach (var item in vals)
-                Config.setVals(ref option.header, item.Key, item.Value);
+                HttpCoreLib.AddVal(ref option.header, item.Key, item.Value);
             return this;
         }
 
@@ -315,12 +363,15 @@ namespace HttpLib
         public HttpCore header(object data)
         {
             var properties = data.GetType().GetProperties();
-            option.header ??= new List<Val>(properties.Length);
-            foreach (var item in properties)
+            if (properties != null)
             {
-                string key = item.Name;
-                object val = item.GetValue(data, null);
-                if (val != null) Config.setVals(ref option.header, key, val.ToString());
+                option.header ??= new List<Val>(properties.Length);
+                foreach (var item in properties)
+                {
+                    string key = item.Name;
+                    var val = item.GetValue(data, null);
+                    if (val != null) HttpCoreLib.AddVal(ref option.header, key, val.ToString());
+                }
             }
             return this;
         }
@@ -424,6 +475,47 @@ namespace HttpLib
 
         #endregion
 
+        #region 缓存
+
+        CacheModel? _cache = null;
+        /// <summary>
+        /// 设置缓存
+        /// </summary>
+        /// <param name="id">缓存id</param>
+        public HttpCore cache(string id)
+        {
+            _cache = new CacheModel(id);
+            return this;
+        }
+
+        /// <summary>
+        /// 设置缓存
+        /// </summary>
+        /// <param name="id">缓存id</param>
+        /// <param name="time">有效期 分钟</param>
+        public HttpCore cache(string id, int time)
+        {
+            _cache = new CacheModel(id) { t = time };
+            return this;
+        }
+
+        class CacheModel
+        {
+            public CacheModel(string _id)
+            {
+                if (Config.CacheFolder == null) throw new Exception("先配置\"Config.CachePath\"");
+                path = Config.CacheFolder;
+                id = _id;
+                file = path + _id;
+            }
+            public string id { get; set; }
+            public int t = 0;
+            public string path { get; set; }
+            public string file { get; set; }
+        }
+
+        #endregion
+
         #region 请求
 
         private Func<HttpCore, bool>? request_before = null;
@@ -517,20 +609,48 @@ namespace HttpLib
             try
             {
                 abort();
+                if (_cache != null)
+                {
+                    if (File.Exists(_cache.file))
+                    {
+                        if (_cache.t > 0)
+                        {
+                            var t = File.GetCreationTime(_cache.file);
+                            var elapsedTicks = DateTime.Now.Ticks - t.Ticks;
+                            var elapsedSpan = new TimeSpan(elapsedTicks);
+                            if (elapsedSpan.TotalMinutes < _cache.t)
+                            {
+                                switch (mode.Mode)
+                                {
+                                    case ReModeCode.STR:
+                                        return new TaskResult(new WebResult { OK = true, StatusCode = HttpStatusCode.OK }, File.ReadAllText(_cache.file));
+                                    case ReModeCode.BYTE:
+                                        return new TaskResult(new WebResult { OK = true, StatusCode = HttpStatusCode.OK }, File.ReadAllBytes(_cache.file));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            switch (mode.Mode)
+                            {
+                                case ReModeCode.STR:
+                                    return new TaskResult(new WebResult { OK = true, StatusCode = HttpStatusCode.OK }, File.ReadAllText(_cache.file));
+                                case ReModeCode.BYTE:
+                                    return new TaskResult(new WebResult { OK = true, StatusCode = HttpStatusCode.OK }, File.ReadAllBytes(_cache.file));
+                            }
+                        }
+                    }
+                }
                 var uri = new Uri(option.Url);
                 CookieContainer cookies = new CookieContainer();
-
                 using (var handler = new HttpClientHandler())
                 {
                     #region SSL
 
-                    if (uri.Scheme.ToUpper() == "HTTPS")
+                    handler.ServerCertificateCustomValidationCallback = (_s, certificate, chain, sslPolicyErrors) =>
                     {
-                        handler.ServerCertificateCustomValidationCallback = (_s, certificate, chain, sslPolicyErrors) =>
-                        {
-                            return true;
-                        };
-                    }
+                        return true;
+                    };
 
                     #endregion
 
@@ -548,16 +668,18 @@ namespace HttpLib
                         Encoding encoding = option.encoding ?? Encoding.UTF8;
 
                         string? ContentTypeStr = null;
-                        if (Config._headers != null && Config._headers.Count > 0)
-                            SetHeader(ref ContentTypeStr, httpRequest, Config._headers, uri, cookies);
+                        if (Config.header != null && Config.header.Count > 0)
+                            SetHeader(ref ContentTypeStr, httpRequest, Config.header, uri, cookies);
                         if (option.header != null && option.header.Count > 0)
                             SetHeader(ref ContentTypeStr, httpRequest, option.header, uri, cookies);
-
 
                         HttpClient httpClient;
                         if (request_progres == null && request_progres_percent == null && response_progres == null && response_progres_percent == null)
                         {
-                            httpClient = new HttpClient(handler);
+                            if (Config.UsePool)
+                                httpClient = HttpClientFactory.Create(handler);//池
+                            else
+                                httpClient = new HttpClient(handler);
                         }
                         else
                         {
@@ -596,8 +718,8 @@ namespace HttpLib
                             #endregion
 
                             httpClient = new HttpClient(progressMessageHandler);
-                            //httpClient = HttpClientFactory.Create(handler, progressMessageHandler);//池
                         }
+
                         using (httpClient)
                         {
                             if (option.timeout > 0)
@@ -609,14 +731,10 @@ namespace HttpLib
                             {
                                 if (!string.IsNullOrEmpty(option.datastr))
                                 {
-                                    //if (!isContentType)
-                                    //    SetHeader(httpRequest, "Content-Type", "application/text");
-                                    //SetHeader(httpRequest, "Content-Length", bs.Length.ToString());
                                     if (ContentTypeStr == null)
                                         httpRequest.Content = new StringContent(option.datastr, encoding);
                                     else
                                         httpRequest.Content = new StringContent(option.datastr, encoding, ContentTypeStr);
-
                                 }
                                 else if (option.file != null && option.file.Count > 0)
                                 {
@@ -638,14 +756,17 @@ namespace HttpLib
                                     {
                                         foreach (var item in option.data)
                                         {
-                                            var valueBytes = encoding.GetBytes(item.Value);
-                                            var byteArray = new ByteArrayContent(valueBytes);
-                                            //var byteArray = new StringContent(item.Value);
-                                            byteArray.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                                            if (item.Value != null)
                                             {
-                                                Name = item.Key
-                                            };
-                                            Content.Add(byteArray);
+                                                //var valueBytes = encoding.GetBytes(item.Value);
+                                                //var byteArray = new ByteArrayContent(valueBytes);
+                                                var stringContent = new StringContent(item.Value);
+                                                stringContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                                                {
+                                                    Name = item.Key
+                                                };
+                                                Content.Add(stringContent);
+                                            }
                                         }
                                     }
                                     httpRequest.Content = Content;
@@ -655,8 +776,11 @@ namespace HttpLib
                                     var dir = new Dictionary<string, string>(option.data.Count);
                                     foreach (var item in option.data)
                                     {
-                                        if (dir.ContainsKey(item.Key)) dir[item.Key] = item.Value;
-                                        else dir.Add(item.Key, item.Value);
+                                        if (item.Value != null)
+                                        {
+                                            if (dir.ContainsKey(item.Key)) dir[item.Key] = item.Value;
+                                            else dir.Add(item.Key, item.Value);
+                                        }
                                     }
                                     httpRequest.Content = new FormUrlEncodedContent(dir);
                                 }
@@ -681,12 +805,30 @@ namespace HttpLib
                                 case ReModeCode.STR:
                                     {
                                         var result = await responseMessage.Content.ReadAsStringAsync();
-                                        return new TaskResult(_web, result);
+                                        if (result != null)
+                                        {
+                                            if (_cache != null)
+                                            {
+                                                _cache.path.CreateDirectory();
+                                                File.WriteAllText(_cache.file, result);
+                                            }
+                                            return new TaskResult(_web, result);
+                                        }
+                                        return new TaskResult(_web);
                                     }
                                 case ReModeCode.BYTE:
                                     {
                                         var result = await responseMessage.Content.ReadAsByteArrayAsync();
-                                        return new TaskResult(_web, result);
+                                        if (result != null)
+                                        {
+                                            if (_cache != null)
+                                            {
+                                                _cache.path.CreateDirectory();
+                                                File.WriteAllBytes(_cache.file, result);
+                                            }
+                                            return new TaskResult(_web, result);
+                                        }
+                                        return new TaskResult(_web);
                                     }
                                 case ReModeCode.DOWN:
                                     {
@@ -770,37 +912,42 @@ namespace HttpLib
         {
             foreach (var item in headers)
             {
-                string _Lower_Name = item.Key.ToLower();
-                if (_Lower_Name == "cookie")
+                if (item.Value != null)
                 {
-                    string _cookie = item.Value;
-
-                    if (_cookie.Contains(';'))
+                    string _Lower_Name = item.Key.ToLower();
+                    if (_Lower_Name == "cookie")
                     {
-                        string[] arrCookie = _cookie.Split(';');
-                        foreach (string sCookie in arrCookie)
+                        string _cookie = item.Value;
+                        if (_cookie.Contains(';'))
                         {
-                            if (string.IsNullOrEmpty(sCookie) || sCookie.IndexOf("expires") > 0) continue;
-                            cookies.SetCookies(uri, sCookie);
+                            string[] arrCookie = _cookie.Split(';');
+                            foreach (string sCookie in arrCookie)
+                            {
+                                if (string.IsNullOrEmpty(sCookie) || sCookie.IndexOf("expires") > 0) continue;
+                                cookies.SetCookies(uri, sCookie);
+                            }
+                        }
+                        else
+                        {
+                            cookies.SetCookies(uri, _cookie);
                         }
                     }
                     else
                     {
-                        cookies.SetCookies(uri, _cookie);
+                        if (_Lower_Name == "content-type") ContentTypeStr = item.Value;
+                        else
+                        {
+                            if (req.Headers.Contains(item.Key)) req.Headers.Remove(item.Key);
+                            req.Headers.Add(item.Key, item.Value);
+                        }
                     }
-                }
-                else
-                {
-                    if (_Lower_Name == "content-type") ContentTypeStr = item.Value;
-                    if (req.Headers.Contains(item.Key)) req.Headers.Remove(item.Key);
-                    req.Headers.Add(item.Key, item.Value);
                 }
             }
         }
-        private static void SetHeader(HttpRequestMessage req, string key, string val)
+        private static void SetHeader(HttpRequestMessage req, string key, string? val)
         {
             if (req.Headers.Contains(key)) req.Headers.Remove(key);
-            req.Headers.Add(key, val);
+            if (val != null) req.Headers.Add(key, val);
         }
 
         #endregion
@@ -881,7 +1028,7 @@ namespace HttpLib
         }
     }
 
-    public enum ReModeCode
+    enum ReModeCode
     {
         /// <summary>
         /// 仅请求
@@ -903,6 +1050,26 @@ namespace HttpLib
 
     public static class HttpCoreLib
     {
+        public static void CreateDirectory(this string dir)
+        {
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+        }
+        public static void AddVal(ref List<Val> obj, Val val)
+        {
+            AddVal(ref obj, val.Key, val.Value);
+        }
+
+        public static void AddVal(ref List<Val> obj, string key, string? val)
+        {
+            var find = obj.Find(ab => ab.Key == key);
+            if (find == null) obj.Add(new Val(key, val));
+            else
+            {
+                if (val != null) find.SetValue(val);
+                else obj.Remove(find);
+            }
+        }
+
         public static string ToString(this Dictionary<string, string> vals)
         {
             return ToString(vals, Environment.NewLine);
