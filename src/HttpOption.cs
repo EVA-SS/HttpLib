@@ -8,13 +8,19 @@ namespace HttpLib
 {
     public class HttpOption
     {
-        public HttpOption(string _uri) { uri = _uri; }
+        public HttpOption(string _uri) { uri = new Uri(_uri); }
         public HttpOption(string _uri, HttpMethod _method)
+        {
+            uri = new Uri(_uri);
+            method = _method;
+        }
+        public HttpOption(Uri _uri, HttpMethod _method)
         {
             uri = _uri;
             method = _method;
         }
-        public string uri;
+
+        public Uri uri;
         public HttpMethod method = HttpMethod.Get;
 
         /// <summary>
@@ -57,14 +63,13 @@ namespace HttpLib
             {
                 try
                 {
-                    var _uri = new Uri(uri);
-                    if (IPAddress.TryParse(_uri.Host, out IPAddress? ip))
+                    if (IPAddress.TryParse(uri.Host, out IPAddress? ip))
                     {
                         return ip.ToString();
                     }
                     else
                     {
-                        var hostEntry = Dns.GetHostEntry(_uri.Host);
+                        var hostEntry = Dns.GetHostEntry(uri.Host);
                         var ipEndPoint = new IPEndPoint(hostEntry.AddressList[0], 0);
                         string _ip = ipEndPoint.Address.ToString();
                         if (_ip.StartsWith("::"))
@@ -85,12 +90,10 @@ namespace HttpLib
         /// <summary>
         /// 请求URL
         /// </summary>
-        public string Url
+        public Uri Url
         {
             get
             {
-                string uri_temp = uri;
-
                 #region 合并参数
 
                 var param_ = new List<string>();
@@ -123,22 +126,23 @@ namespace HttpLib
 
                 if (param_.Count > 0)
                 {
-                    if (uri_temp.Contains("?"))
+                    if (uri.AbsoluteUri.Contains("?"))
                     {
-                        return uri + "&" + string.Join("&", param_);
+                        return new Uri(uri.AbsoluteUri + "&" + string.Join("&", param_));
                     }
                     else
                     {
-                        return uri + "?" + string.Join("&", param_);
+                        return new Uri(uri.AbsoluteUri + "?" + string.Join("&", param_));
                     }
                 }
-                else { return uri; }
+
+                return uri;
             }
         }
 
         public override string ToString()
         {
-            return uri;
+            return uri.AbsoluteUri;
         }
     }
 }

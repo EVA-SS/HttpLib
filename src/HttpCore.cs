@@ -20,6 +20,10 @@ namespace HttpLib
         {
             option = new HttpOption(uri, method);
         }
+        public HttpCore(Uri uri, HttpMethod method)
+        {
+            option = new HttpOption(uri, method);
+        }
         public HttpCore(HttpOption _option)
         {
             option = _option;
@@ -642,7 +646,7 @@ namespace HttpLib
                         }
                     }
                 }
-                var uri = new Uri(option.Url);
+                var uri = option.Url;
                 CookieContainer cookies = new CookieContainer();
                 using (var handler = new HttpClientHandler())
                 {
@@ -795,7 +799,7 @@ namespace HttpLib
 
                             cancellationToken = new CancellationTokenSource();
                             var responseMessage = await httpClient.SendAsync(httpRequest, cancellationToken.Token);
-                            WebResult _web = GetWebResult(responseMessage);
+                            var _web = GetWebResult(responseMessage);
 
                             if (request_after != null)
                                 if (!request_after(this, responseMessage))
@@ -989,6 +993,7 @@ namespace HttpLib
         {
             var _web = new WebResult
             {
+                Uri = response.RequestMessage.RequestUri,
                 OK = response.IsSuccessStatusCode,
                 StatusCode = response.StatusCode,
                 Header = new Dictionary<string, string>(response.Headers.Count())
@@ -1016,7 +1021,7 @@ namespace HttpLib
             {
                 return content.Headers.ContentDisposition.FileName;
             }
-            return Path.GetFileName(option.uri);
+            return Path.GetFileName(option.uri.AbsoluteUri);
         }
 
         #endregion
@@ -1025,7 +1030,7 @@ namespace HttpLib
 
         public override string ToString()
         {
-            return option.uri;
+            return option.uri.AbsoluteUri;
         }
     }
 

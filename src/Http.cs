@@ -14,8 +14,17 @@ namespace HttpLib
         {
             return Core(url, HttpMethod.Get);
         }
+        public static HttpCore Get(this Uri url)
+        {
+            return Core(url, HttpMethod.Get);
+        }
 
         public static HttpCore Post(this string url)
+        {
+            return Core(url, HttpMethod.Post);
+        }
+
+        public static HttpCore Post(this Uri url)
         {
             return Core(url, HttpMethod.Post);
         }
@@ -25,12 +34,27 @@ namespace HttpLib
             return Core(url, HttpMethod.Put);
         }
 
+        public static HttpCore Put(this Uri url)
+        {
+            return Core(url, HttpMethod.Put);
+        }
+
         public static HttpCore Delete(this string url)
         {
             return Core(url, HttpMethod.Delete);
         }
 
+        public static HttpCore Delete(this Uri url)
+        {
+            return Core(url, HttpMethod.Delete);
+        }
+
         public static HttpCore Core(this string url, HttpMethod method)
+        {
+            return new HttpCore(url, method);
+        }
+
+        public static HttpCore Core(this Uri url, HttpMethod method)
         {
             return new HttpCore(url, method);
         }
@@ -87,6 +111,7 @@ namespace HttpLib
             if (web != null)
             {
                 OK = web.OK;
+                Uri = web.Uri;
                 StatusCode = web.StatusCode;
                 Type = web.Type;
                 Header = web.Header;
@@ -97,6 +122,7 @@ namespace HttpLib
         {
             Exception = err;
             OK = web.OK;
+            Uri = web.Uri;
             StatusCode = web.StatusCode;
             Type = web.Type;
             Header = web.Header;
@@ -107,6 +133,11 @@ namespace HttpLib
         /// 是否算成功响应
         /// </summary>
         public bool OK { set; get; }
+
+        /// <summary>
+        /// 地址
+        /// </summary>
+        public Uri Uri { set; get; }
 
         /// <summary>
         /// 状态代码

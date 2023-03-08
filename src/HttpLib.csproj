@@ -7,7 +7,7 @@
 		<Nullable>enable</Nullable>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
-		<Version>1.1.0</Version>
+		<Version>1.1.1</Version>
 		<Copyright>Copyright © 2023 Tom</Copyright>
 		<Description>便捷的HttpClient库
 支持GET/POST/PUT/Delete，上传与下载的进度监控，既可以上传文件等二进制数据，也可以上传表单键值对

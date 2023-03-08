@@ -9,7 +9,7 @@
 
 ## 🖥支持环境
 - .NET 6.0及以上。
-- .NET Core3.0及以上。
+- .NET Core3.1及以上。
 - .NET Standard2.0及以上。
 
 ## 🌴支持
