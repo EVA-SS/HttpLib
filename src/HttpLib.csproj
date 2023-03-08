@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.0;netcoreapp3.1;net6.0;net7.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net6.0;net7.0</TargetFrameworks>
 		<Authors>Tom</Authors>
 		<LangVersion>10.0</LangVersion>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
-		<Version>1.0.0</Version>
-		<Copyright>Tom 2022</Copyright>
+		<Version>1.1.0</Version>
+		<Copyright>Copyright © 2023 Tom</Copyright>
 		<Description>便捷的HttpClient库
 支持GET/POST/PUT/Delete，上传与下载的进度监控，既可以上传文件等二进制数据，也可以上传表单键值对
 ===========================
@@ -28,8 +28,5 @@
 	<ItemGroup>
 		<None Include="..\Logo.png" Pack="true" PackagePath="" />
 		<None Include="..\README.md" Pack="true" PackagePath="" />
-	</ItemGroup>
-	<ItemGroup>
-	  <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
 	</ItemGroup>
 </Project>

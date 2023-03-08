@@ -79,17 +79,15 @@ namespace HttpLib
         /// 请求参(GET)
         /// </summary>
         /// <param name="data">多个参数</param>
-        public HttpCore query(object data)
+        public HttpCore query(object obj)
         {
-            var properties = data.GetType().GetProperties();
-            if (properties != null)
+            var data = obj.ToDictionary();
+            if (data.Count > 0)
             {
-                option.query ??= new List<Val>(properties.Length);
-                foreach (var item in properties)
+                option.query ??= new List<Val>(data.Count);
+                foreach (var item in data)
                 {
-                    string key = item.Name;
-                    var val = item.GetValue(data, null);
-                    if (val != null) HttpCoreLib.AddVal(ref option.query, key, val.ToString());
+                    if (item.Value != null) HttpCoreLib.AddVal(ref option.query, item.Key, item.Value.ToString());
                 }
             }
             return this;
@@ -201,41 +199,46 @@ namespace HttpLib
         /// 请求的参数
         /// </summary>
         /// <param name="data">多个参数</param>
-        public HttpCore data(object data)
+        public HttpCore data(object obj)
         {
-            var properties = data.GetType().GetProperties();
-            if (properties != null)
+            var data = obj.ToDictionary();
+            if (data.Count > 0)
             {
-                option.data ??= new List<Val>(properties.Length);
-                foreach (var item in properties)
+                option.data ??= new List<Val>(data.Count);
+                foreach (var item in data)
                 {
-                    string key = item.Name;
-                    var val = item.GetValue(data, null);
-                    if (val != null)
+                    if (item.Value != null)
                     {
-                        if (val is IEnumerable vals)
+                        if (item.Value is string)
+                            HttpCoreLib.AddVal(ref option.data, item.Key, item.Value.ToString());
+                        else if (item.Value is Files file)
+                            this.data(file);
+                        else if (item.Value is List<Files> files)
+                            this.data(files);
+                        else if (item.Value is Files[] files2)
+                            this.data(files2);
+                        else if (item.Value is IEnumerable list)
                         {
                             if (option.method == HttpMethod.Get)
                             {
                                 var listval = new List<string?>();
-                                foreach (var items in vals)
+                                foreach (var es in list)
                                 {
-                                    if (items != null) listval.Add(items.ToString());
+                                    if (es != null) listval.Add(es.ToString());
                                 }
-                                HttpCoreLib.AddVal(ref option.data, key, string.Join(",", listval));
+                                option.query ??= new List<Val>(listval.Count);
+                                HttpCoreLib.AddVal(ref option.query, item.Key, string.Join(",", listval));
                             }
                             else
                             {
-                                foreach (var items in vals)
+                                foreach (var es in list)
                                 {
-                                    if (items != null) HttpCoreLib.AddVal(ref option.data, key + "[]", items.ToString());
+                                    if (es != null) HttpCoreLib.AddVal(ref option.data, item.Key + "[]", es.ToString());
                                 }
                             }
                         }
                         else
-                        {
-                            HttpCoreLib.AddVal(ref option.data, key, val.ToString());
-                        }
+                            HttpCoreLib.AddVal(ref option.data, item.Key, item.Value.ToString());
                     }
                 }
             }
@@ -360,17 +363,15 @@ namespace HttpLib
         /// 请求头
         /// </summary>
         /// <param name="data">多个请求头</param>
-        public HttpCore header(object data)
+        public HttpCore header(object obj)
         {
-            var properties = data.GetType().GetProperties();
-            if (properties != null)
+            var data = obj.ToDictionary();
+            if (data.Count > 0)
             {
-                option.header ??= new List<Val>(properties.Length);
-                foreach (var item in properties)
+                option.header ??= new List<Val>(data.Count);
+                foreach (var item in data)
                 {
-                    string key = item.Name;
-                    var val = item.GetValue(data, null);
-                    if (val != null) HttpCoreLib.AddVal(ref option.header, key, val.ToString());
+                    if (item.Value != null) HttpCoreLib.AddVal(ref option.header, item.Key, item.Value.ToString());
                 }
             }
             return this;

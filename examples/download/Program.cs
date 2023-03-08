@@ -2,7 +2,7 @@
 
 using HttpLib;
 
-Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.6.2/QQ9.6.2.28756.exe")
+Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.7.3/QQ9.7.3.28946.exe")
        .redirect(true)
        .responseProgres((bytesSent, totalBytes) =>
        {

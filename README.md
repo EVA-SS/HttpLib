@@ -77,10 +77,13 @@ Http.Delete("https://www.baidu.com")
 >GET请求参数会自动注入到地址
 ``` csharp
 data(new { test1 = "测试1", test2 = "测试2" })
-data(new { params_ = "关键字参数" })
 data(new { wd = new string[] { "GitHub - Haku-Men HttpLib", "POST数组参数" } })
 query(new { test = "POST下继续传递URL参数" })
 query(new Val("test", "POST下继续传递URL参数1"))
+```
+>支持Class模型 `POST Json 需要自己编程`
+``` csharp
+data(new MyModel{ id = "id参数", file=new Files(@"文件地址") })
 ```
 ``` csharp
 data(new Val("test1", "测试1"), new Val("test2", "测试2"))
@@ -101,10 +104,10 @@ file(@"文件地址")
 ```
 ## 添加请求头
 ``` csharp
-header(new { Accept = "*/*", UserAgent = "Chrome" })
+header(new { Accept = "*/*", Token = "test" })
 ```
 ``` csharp
-header(new Val("accept","*/*"), new Val("user-agent","Chrome"))
+header(new Val("Accept","*/*"), new Val("User-Agent","Chrome"))
 ```
 ## 启用重定向
 >默认禁止
@@ -222,7 +225,7 @@ Console.WriteLine(html.Data);
 
 # 实例下载文件
 ``` csharp
-Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.6.2/QQ9.6.2.28756.exe")
+Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.7.3/QQ9.7.3.28946.exe")
        .redirect(true)
        .responseProgres((bytesSent, totalBytes) =>
        {
