@@ -1017,11 +1017,12 @@ namespace HttpLib
         }
         public string FileName(HttpContent content)
         {
-            if (content.Headers.ContentDisposition != null && content.Headers.ContentDisposition.FileName != null)
+            if (content.Headers.ContentDisposition != null)
             {
-                return content.Headers.ContentDisposition.FileName;
+                if (content.Headers.ContentDisposition.FileName != null) return content.Headers.ContentDisposition.FileName;
+                if (content.Headers.ContentDisposition.FileNameStar != null) return content.Headers.ContentDisposition.FileNameStar;
             }
-            return Path.GetFileName(option.uri.AbsoluteUri);
+            return Path.GetFileName(option.uri.AbsolutePath);
         }
 
         #endregion
