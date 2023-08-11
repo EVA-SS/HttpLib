@@ -55,6 +55,7 @@ Config.UsePool = true;
 * [实例1](#实例1)
 * [实例2](#实例2)
 * [实例下载文件](#实例下载文件)
+* [实例多线程下载文件](#实例多线程下载文件)
 * [实例获取域名IP](#实例获取域名ip)
 * [WebResult介绍](#webresult介绍)
 
@@ -252,6 +253,31 @@ Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.7.3/QQ9.7.3.28946.exe")
        }).Wait();
 ```
 
+# 实例多线程下载文件
+``` csharp
+Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.7.3/QQ9.7.3.28946.exe")
+       .redirect(true)
+       .DownLoad(new HttpDownOption(@"C:\Users\admin\Desktop\文档下载")
+       {
+           progres = (bytesSent, totalBytes) =>
+           {
+               Console.SetCursorPosition(0, 0);
+               double prog = (bytesSent * 1.0) / (totalBytes * 1.0);
+               Console.Write("{0}% 下载 {1}/{2}                  ", Math.Round(prog * 100.0, 1).ToString("N1"), CountSize(bytesSent), CountSize(totalBytes));
+           }
+       }).ContinueWith(savapath =>
+       {
+           if (savapath.Result != null)
+           {
+               Console.WriteLine("下载成功保存至:" + savapath.Result);
+           }
+           else
+           {
+               Console.WriteLine("下载失败");
+           }
+       }).Wait();
+```
+
 # 实例获取域名IP
 ``` csharp
 Http.Get("https://www.baidu.com").IP
@@ -266,5 +292,6 @@ Http.Get("https://www.baidu.com").IP
 |Type|服务指示类型|`Content-Type`|
 |Header|响应头||
 |HeaderContent|内容响应头||
+|ContentLength|内容长度||
 |Exception|错误异常||
 |Data|响应内容||

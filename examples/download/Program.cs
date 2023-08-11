@@ -2,31 +2,53 @@
 
 using HttpLib;
 
+
 Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.7.3/QQ9.7.3.28946.exe")
-       .redirect(true)
-       .responseProgres((bytesSent, totalBytes) =>
+       .redirect(true).DownLoad(new HttpDownOption(@"C:\Users\admin\Desktop\文档下载")
        {
-           Console.SetCursorPosition(0, 0);
-           if (totalBytes.HasValue)
+           progres = (bytesSent, totalBytes) =>
            {
-               double prog = (bytesSent * 1.0) / (totalBytes.Value * 1.0);
-               Console.Write("{0}% 下载 {1}/{2}                  ", Math.Round(prog * 100.0, 1).ToString("N1"), CountSize(bytesSent), CountSize(totalBytes.Value));
+               Console.SetCursorPosition(0, 0);
+               double prog = (bytesSent * 1.0) / (totalBytes * 1.0);
+               Console.Write("{0}% 下载 {1}/{2}                  ", Math.Round(prog * 100.0, 1).ToString("N1"), CountSize(bytesSent), CountSize(totalBytes));
            }
-           else
-           {
-               Console.Write("{0} 下载            ", CountSize(bytesSent));
-           }
-       }).download(@"C:\Users\admin\Desktop").ContinueWith(savapath =>
+       }).ContinueWith(savapath =>
        {
            if (savapath.Result != null)
            {
-               Console.WriteLine("下载成功保存至:" + savapath.Result.Data);
+               Console.WriteLine("下载成功保存至:" + savapath.Result);
            }
            else
            {
                Console.WriteLine("下载失败");
            }
        }).Wait();
+
+//Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.7.3/QQ9.7.3.28946.exe")
+//       .redirect(true)
+//       .responseProgres((bytesSent, totalBytes) =>
+//       {
+//           Console.SetCursorPosition(0, 0);
+//           if (totalBytes.HasValue)
+//           {
+//               double prog = (bytesSent * 1.0) / (totalBytes.Value * 1.0);
+//               Console.Write("{0}% 下载 {1}/{2}                  ", Math.Round(prog * 100.0, 1).ToString("N1"), CountSize(bytesSent), CountSize(totalBytes.Value));
+//           }
+//           else
+//           {
+//               Console.Write("{0} 下载            ", CountSize(bytesSent));
+//           }
+//       }).download(@"C:\Users\admin\Desktop").ContinueWith(savapath =>
+//       {
+//           if (savapath.Result != null)
+//           {
+//               Console.WriteLine("下载成功保存至:" + savapath.Result.Data);
+//           }
+//           else
+//           {
+//               Console.WriteLine("下载失败");
+//           }
+//       }).Wait();
 
 Console.ReadLine();
 

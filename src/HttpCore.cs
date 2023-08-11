@@ -60,7 +60,7 @@ namespace HttpLib
         /// </summary>
         /// <param name="key">键</param>
         /// <param name="val">值</param>
-        public HttpCore query(string key, string val)
+        public HttpCore query(string key, string? val)
         {
             option.query ??= new List<Val>();
             HttpCoreLib.AddVal(ref option.query, key, val);
@@ -130,7 +130,7 @@ namespace HttpLib
         /// </summary>
         /// <param name="key">键</param>
         /// <param name="val">值</param>
-        public HttpCore data(string key, string val)
+        public HttpCore data(string key, string? val)
         {
             option.data ??= new List<Val>();
             HttpCoreLib.AddVal(ref option.data, key, val);
@@ -155,10 +155,7 @@ namespace HttpLib
         /// <param name="vals">多个参数</param>
         public HttpCore data(IDictionary<string, string[]> vals)
         {
-            if (option.method == HttpMethod.Get)
-            {
-                throw new Exception("GET不支持数组");
-            }
+            if (option.method == HttpMethod.Get) throw new Exception("GET不支持数组");
             option.data ??= new List<Val>(vals.Count);
             foreach (var val in vals)
                 foreach (var items in val.Value)
@@ -172,10 +169,7 @@ namespace HttpLib
         /// <param name="vals">多个参数</param>
         public HttpCore data(IDictionary<string, List<string>> vals)
         {
-            if (option.method == HttpMethod.Get)
-            {
-                throw new Exception("GET不支持数组");
-            }
+            if (option.method == HttpMethod.Get) throw new Exception("GET不支持数组");
             option.data ??= new List<Val>(vals.Count);
             foreach (var val in vals)
                 foreach (var items in val.Value)
@@ -646,228 +640,74 @@ namespace HttpLib
                         }
                     }
                 }
-                var uri = option.Url;
-                CookieContainer cookies = new CookieContainer();
-                using (var handler = new HttpClientHandler())
+                using (var client = GetClient())
                 {
-                    #region SSL
+                    if (request_before != null)
+                        if (!request_before(this))
+                            return new TaskResult(new Exception("主动取消"));
 
-                    handler.ServerCertificateCustomValidationCallback = (_s, certificate, chain, sslPolicyErrors) =>
+                    cancellationToken = new CancellationTokenSource();
+                    var responseMessage = await client.client.SendAsync(client.request, HttpCompletionOption.ResponseHeadersRead, cancellationToken.Token);
+                    var _web = GetWebResult(responseMessage);
+
+                    if (request_after != null)
+                        if (!request_after(this, responseMessage))
+                            return new TaskResult(_web, new Exception("主动取消"));
+
+                    switch (mode.Mode)
                     {
-                        return true;
-                    };
-
-                    #endregion
-
-                    handler.AutomaticDecompression = Config.DecompressionMethod;
-                    handler.CookieContainer = cookies;
-                    if (option.redirect)
-                        handler.AllowAutoRedirect = option.redirect;
-                    else
-                        handler.AllowAutoRedirect = Config.Redirect;
-
-                    using (var httpRequest = new HttpRequestMessage(option.method, uri))
-                    {
-                        httpRequest.Headers.Host = uri.Host;
-                        SetHeader(httpRequest, "User-Agent", Config.UserAgent);
-                        Encoding encoding = option.encoding ?? Encoding.UTF8;
-
-                        string? ContentTypeStr = null;
-                        if (Config.header != null && Config.header.Count > 0)
-                            SetHeader(ref ContentTypeStr, httpRequest, Config.header, uri, cookies);
-                        if (option.header != null && option.header.Count > 0)
-                            SetHeader(ref ContentTypeStr, httpRequest, option.header, uri, cookies);
-
-                        HttpClient httpClient;
-                        if (request_progres == null && request_progres_percent == null && response_progres == null && response_progres_percent == null)
-                        {
-                            if (Config.UsePool)
-                                httpClient = HttpClientFactory.Create(handler);//池
-                            else
-                                httpClient = new HttpClient(handler);
-                        }
-                        else
-                        {
-                            #region 注入进度
-
-                            var progressMessageHandler = new ProgressMessageHandler(handler);
-                            if (request_progres != null)
+                        case ReModeCode.STR:
                             {
-                                progressMessageHandler.HttpSendProgress += (sender, re) =>
+                                var result = await responseMessage.Content.ReadAsStringAsync();
+                                if (result != null)
                                 {
-                                    request_progres(re.BytesTransferred, re.TotalBytes);
-                                };
+                                    if (_cache != null)
+                                    {
+                                        _cache.path.CreateDirectory();
+                                        File.WriteAllText(_cache.file, result);
+                                    }
+                                    return new TaskResult(_web, result);
+                                }
+                                return new TaskResult(_web);
                             }
-                            else if (request_progres_percent != null)
+                        case ReModeCode.BYTE:
                             {
-                                progressMessageHandler.HttpSendProgress += (sender, re) =>
+                                var result = await responseMessage.Content.ReadAsByteArrayAsync();
+                                if (result != null)
                                 {
-                                    request_progres_percent(re.ProgressPercentage);
-                                };
+                                    if (_cache != null)
+                                    {
+                                        _cache.path.CreateDirectory();
+                                        File.WriteAllBytes(_cache.file, result);
+                                    }
+                                    return new TaskResult(_web, result);
+                                }
+                                return new TaskResult(_web);
                             }
-                            if (response_progres != null)
+                        case ReModeCode.DOWN:
                             {
-                                progressMessageHandler.HttpReceiveProgress += (sender, re) =>
+                                if (mode.SavePath == null) return new TaskResult(_web);
+                                if (!Directory.Exists(mode.SavePath)) Directory.CreateDirectory(mode.SavePath);
+                                if (!mode.SavePath.EndsWith("\\") || !mode.SavePath.EndsWith("/"))
                                 {
-                                    response_progres(re.BytesTransferred, re.TotalBytes);
-                                };
-                            }
-                            else if (response_progres_percent != null)
-                            {
-                                progressMessageHandler.HttpReceiveProgress += (sender, re) =>
-                                {
-                                    response_progres_percent(re.ProgressPercentage);
-                                };
-                            }
-
-                            #endregion
-
-                            httpClient = new HttpClient(progressMessageHandler);
-                        }
-
-                        using (httpClient)
-                        {
-                            if (option.timeout > 0)
-                                httpClient.Timeout = TimeSpan.FromMilliseconds(option.timeout);
-
-                            #region 准备上传数据
-
-                            if (option.method != HttpMethod.Get && option.method != HttpMethod.Head)
-                            {
-                                if (!string.IsNullOrEmpty(option.datastr))
-                                {
-                                    if (ContentTypeStr == null)
-                                        httpRequest.Content = new StringContent(option.datastr, encoding);
+                                    if (!mode.SavePath.EndsWith("\\"))
+                                    {
+                                        mode.SavePath += "\\";
+                                    }
                                     else
-                                        httpRequest.Content = new StringContent(option.datastr, encoding, ContentTypeStr);
+                                    {
+                                        mode.SavePath += "/";
+                                    }
                                 }
-                                else if (option.file != null && option.file.Count > 0)
+                                mode.SaveName ??= FileName(responseMessage.Content, this);
+                                var outfile = mode.SavePath + mode.SaveName;
+                                using (var fileStream = new FileStream(outfile, FileMode.Create, FileAccess.Write))
                                 {
-                                    string boundary = RandomString(8);
-
-                                    var Content = new MultipartFormDataContent(boundary);
-                                    foreach (var file in option.file)
-                                    {
-                                        var fileByteArrayContent = new StreamContent(file.Stream);
-                                        fileByteArrayContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-                                        fileByteArrayContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
-                                        {
-                                            Name = file.Name, //接口匹配name
-                                            FileName = file.FileName //附件文件名
-                                        };
-                                        Content.Add(fileByteArrayContent);
-                                    }
-                                    if (option.data != null && option.data.Count > 0)
-                                    {
-                                        foreach (var item in option.data)
-                                        {
-                                            if (item.Value != null)
-                                            {
-                                                //var valueBytes = encoding.GetBytes(item.Value);
-                                                //var byteArray = new ByteArrayContent(valueBytes);
-                                                var stringContent = new StringContent(item.Value);
-                                                stringContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
-                                                {
-                                                    Name = item.Key
-                                                };
-                                                Content.Add(stringContent);
-                                            }
-                                        }
-                                    }
-                                    httpRequest.Content = Content;
+                                    await responseMessage.Content.CopyToAsync(fileStream);
                                 }
-                                else if (option.data != null && option.data.Count > 0)
-                                {
-                                    var dir = new Dictionary<string, string>(option.data.Count);
-                                    foreach (var item in option.data)
-                                    {
-                                        if (item.Value != null)
-                                        {
-                                            if (dir.ContainsKey(item.Key)) dir[item.Key] = item.Value;
-                                            else dir.Add(item.Key, item.Value);
-                                        }
-                                    }
-                                    httpRequest.Content = new FormUrlEncodedContent(dir);
-                                }
+                                return new TaskResult(_web, outfile);
                             }
-
-                            #endregion
-
-                            if (request_before != null)
-                                if (!request_before(this))
-                                    return new TaskResult(new Exception("主动取消"));
-
-                            cancellationToken = new CancellationTokenSource();
-                            var responseMessage = await httpClient.SendAsync(httpRequest, cancellationToken.Token);
-                            var _web = GetWebResult(responseMessage);
-
-                            if (request_after != null)
-                                if (!request_after(this, responseMessage))
-                                    return new TaskResult(_web, new Exception("主动取消"));
-
-                            switch (mode.Mode)
-                            {
-                                case ReModeCode.STR:
-                                    {
-                                        var result = await responseMessage.Content.ReadAsStringAsync();
-                                        if (result != null)
-                                        {
-                                            if (_cache != null)
-                                            {
-                                                _cache.path.CreateDirectory();
-                                                File.WriteAllText(_cache.file, result);
-                                            }
-                                            return new TaskResult(_web, result);
-                                        }
-                                        return new TaskResult(_web);
-                                    }
-                                case ReModeCode.BYTE:
-                                    {
-                                        var result = await responseMessage.Content.ReadAsByteArrayAsync();
-                                        if (result != null)
-                                        {
-                                            if (_cache != null)
-                                            {
-                                                _cache.path.CreateDirectory();
-                                                File.WriteAllBytes(_cache.file, result);
-                                            }
-                                            return new TaskResult(_web, result);
-                                        }
-                                        return new TaskResult(_web);
-                                    }
-                                case ReModeCode.DOWN:
-                                    {
-                                        if (mode.SavePath == null) return new TaskResult(_web);
-                                        if (!Directory.Exists(mode.SavePath)) Directory.CreateDirectory(mode.SavePath);
-                                        if (!mode.SavePath.EndsWith("\\") || !mode.SavePath.EndsWith("/"))
-                                        {
-                                            if (!mode.SavePath.EndsWith("\\"))
-                                            {
-                                                mode.SavePath += "\\";
-                                            }
-                                            else
-                                            {
-                                                mode.SavePath += "/";
-                                            }
-                                        }
-                                        mode.SaveName ??= FileName(responseMessage.Content);
-                                        var outfile = mode.SavePath + mode.SaveName;
-                                        using (var fileStream = new FileStream(outfile, FileMode.Create, FileAccess.Write))
-                                        {
-                                            using var stream = await responseMessage.Content.ReadAsStreamAsync();
-                                            byte[] buffer = new byte[Config.CacheSize];
-                                            int length;
-                                            while ((length = stream.Read(buffer, 0, buffer.Length)) > 0)
-                                            {
-                                                // 写入到文件
-                                                fileStream.Write(buffer, 0, length);
-                                            }
-                                        }
-                                        return new TaskResult(_web, outfile);
-                                    }
-                                default: return new TaskResult(_web);
-                            }
-                        }
+                        default: return new TaskResult(_web);
                     }
                 }
             }
@@ -876,6 +716,201 @@ namespace HttpLib
                 return new TaskResult(err);
             }
         }
+
+        #region 核心
+
+        internal Client GetClient(RangeHeaderValue? range = null, Action<long, long?>? action = null)
+        {
+            var uri = option.Url;
+            CookieContainer cookies = new CookieContainer();
+            var handler = new HttpClientHandler();
+
+            #region SSL
+
+            handler.ServerCertificateCustomValidationCallback = (_s, certificate, chain, sslPolicyErrors) =>
+            {
+                return true;
+            };
+
+            #endregion
+
+            handler.AutomaticDecompression = Config.DecompressionMethod;
+            handler.CookieContainer = cookies;
+            if (option.redirect)
+                handler.AllowAutoRedirect = option.redirect;
+            else
+                handler.AllowAutoRedirect = Config.Redirect;
+
+            var httpRequest = new HttpRequestMessage(option.method, uri);
+
+            httpRequest.Headers.Host = uri.Host;
+            if (range != null) httpRequest.Headers.Range = range;
+            SetHeader(httpRequest, "User-Agent", Config.UserAgent);
+            Encoding encoding = option.encoding ?? Encoding.UTF8;
+
+            string? ContentTypeStr = null;
+            if (Config.header != null && Config.header.Count > 0)
+                SetHeader(ref ContentTypeStr, httpRequest, Config.header, uri, cookies);
+            if (option.header != null && option.header.Count > 0)
+                SetHeader(ref ContentTypeStr, httpRequest, option.header, uri, cookies);
+            HttpClient httpClient;
+            if (action != null)
+            {
+                #region 注入进度
+
+                var progressMessageHandler = new ProgressMessageHandler(handler);
+                if (action != null)
+                {
+                    progressMessageHandler.HttpReceiveProgress += (sender, re) =>
+                    {
+                        action(re.BytesTransferred, re.TotalBytes);
+                    };
+                }
+
+                #endregion
+
+                httpClient = new HttpClient(progressMessageHandler);
+            }
+            else
+            {
+                if (request_progres == null && request_progres_percent == null && response_progres == null && response_progres_percent == null)
+                {
+                    if (Config.UsePool)
+                        httpClient = HttpClientFactory.Create(handler);//池
+                    else
+                        httpClient = new HttpClient(handler);
+                }
+                else
+                {
+                    #region 注入进度
+
+                    var progressMessageHandler = new ProgressMessageHandler(handler);
+                    if (request_progres != null)
+                    {
+                        progressMessageHandler.HttpSendProgress += (sender, re) =>
+                        {
+                            request_progres(re.BytesTransferred, re.TotalBytes);
+                        };
+                    }
+                    else if (request_progres_percent != null)
+                    {
+                        progressMessageHandler.HttpSendProgress += (sender, re) =>
+                        {
+                            request_progres_percent(re.ProgressPercentage);
+                        };
+                    }
+                    if (response_progres != null)
+                    {
+                        progressMessageHandler.HttpReceiveProgress += (sender, re) =>
+                        {
+                            response_progres(re.BytesTransferred, re.TotalBytes);
+                        };
+                    }
+                    else if (response_progres_percent != null)
+                    {
+                        progressMessageHandler.HttpReceiveProgress += (sender, re) =>
+                        {
+                            response_progres_percent(re.ProgressPercentage);
+                        };
+                    }
+
+                    #endregion
+
+                    httpClient = new HttpClient(progressMessageHandler);
+                }
+            }
+            if (option.timeout > 0)
+                httpClient.Timeout = TimeSpan.FromMilliseconds(option.timeout);
+
+            #region 准备上传数据
+
+            if (option.method != HttpMethod.Get && option.method != HttpMethod.Head)
+            {
+                if (!string.IsNullOrEmpty(option.datastr))
+                {
+                    if (ContentTypeStr == null)
+                        httpRequest.Content = new StringContent(option.datastr, encoding);
+                    else
+                        httpRequest.Content = new StringContent(option.datastr, encoding, ContentTypeStr);
+                }
+                else if (option.file != null && option.file.Count > 0)
+                {
+                    string boundary = RandomString(8);
+
+                    var Content = new MultipartFormDataContent(boundary);
+                    foreach (var file in option.file)
+                    {
+                        var fileByteArrayContent = new StreamContent(file.Stream);
+                        fileByteArrayContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                        fileByteArrayContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                        {
+                            Name = file.Name, //接口匹配name
+                            FileName = file.FileName //附件文件名
+                        };
+                        Content.Add(fileByteArrayContent);
+                    }
+                    if (option.data != null && option.data.Count > 0)
+                    {
+                        foreach (var item in option.data)
+                        {
+                            if (item.Value != null)
+                            {
+                                //var valueBytes = encoding.GetBytes(item.Value);
+                                //var byteArray = new ByteArrayContent(valueBytes);
+                                var stringContent = new StringContent(item.Value);
+                                stringContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                                {
+                                    Name = item.Key
+                                };
+                                Content.Add(stringContent);
+                            }
+                        }
+                    }
+                    httpRequest.Content = Content;
+                }
+                else if (option.data != null && option.data.Count > 0)
+                {
+                    var dir = new Dictionary<string, string>(option.data.Count);
+                    foreach (var item in option.data)
+                    {
+                        if (item.Value != null)
+                        {
+                            if (dir.ContainsKey(item.Key)) dir[item.Key] = item.Value;
+                            else dir.Add(item.Key, item.Value);
+                        }
+                    }
+                    httpRequest.Content = new FormUrlEncodedContent(dir);
+                }
+            }
+
+            #endregion
+
+            return new Client(handler, httpRequest, httpClient);
+        }
+
+        internal class Client : IDisposable
+        {
+            public Client(HttpClientHandler _handler, HttpRequestMessage _request, HttpClient _client)
+            {
+                handler = _handler;
+                request = _request;
+                client = _client;
+            }
+            public HttpClientHandler handler { get; set; }
+            public HttpRequestMessage request { get; set; }
+            public HttpClient client { get; set; }
+
+            public void Dispose()
+            {
+                handler.Dispose();
+                request.Dispose();
+                client.Dispose();
+            }
+        }
+
+        #endregion
+
+
         private class TaskResult
         {
             public TaskResult(WebResult web)
@@ -1000,6 +1035,7 @@ namespace HttpLib
             };
             if (response.Content != null)
             {
+                _web.ContentLength = response.Content.Headers.ContentLength;
                 if (response.Content.Headers.ContentType != null && response.Content.Headers.ContentType.MediaType != null)
                     _web.Type = response.Content.Headers.ContentType.MediaType;
                 _web.HeaderContent = new Dictionary<string, string>(response.Content.Headers.Count());
@@ -1015,14 +1051,14 @@ namespace HttpLib
 
             return _web;
         }
-        public string FileName(HttpContent content)
+        public static string FileName(HttpContent content, HttpCore core)
         {
             if (content.Headers.ContentDisposition != null)
             {
                 if (content.Headers.ContentDisposition.FileName != null) return content.Headers.ContentDisposition.FileName;
                 if (content.Headers.ContentDisposition.FileNameStar != null) return content.Headers.ContentDisposition.FileNameStar;
             }
-            return Path.GetFileName(option.uri.AbsolutePath);
+            return Path.GetFileName(core.option.uri.AbsolutePath);
         }
 
         #endregion

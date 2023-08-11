@@ -158,6 +158,7 @@ namespace HttpLib
         /// 内容响应头
         /// </summary>
         public Dictionary<string, string>? HeaderContent { set; get; }
+        public long? ContentLength { get; set; }
 
         /// <summary>
         /// 错误异常

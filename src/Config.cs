@@ -46,8 +46,6 @@ namespace HttpLib
         /// <remarks></remarks>
         public static bool UsePool = false;
 
-        public static int CacheSize = 4096;
-
         #endregion
     }
 }
