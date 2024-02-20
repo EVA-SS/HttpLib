@@ -301,9 +301,9 @@ namespace HttpLib
         public HttpDown(HttpCore _core, string _savePath)
         {
             core = _core;
-            Uri = new Uri(core.option.uri);
+            Uri = core.option.uri;
             SavePath = _savePath.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-            Url = core.option.uri;
+            Url = core.option.uri.AbsoluteUri;
         }
 
         #endregion

@@ -211,11 +211,6 @@ namespace HttpLib
         }
 
         #endregion
-
-        public override string ToString()
-        {
-            return option.uri;
-        }
     }
 
     public static class HttpCoreLib

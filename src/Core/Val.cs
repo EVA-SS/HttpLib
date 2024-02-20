@@ -9,8 +9,8 @@ namespace HttpLib
         public Val(string key, double value) : this(key, value.ToString()) { }
         public Val(string key, string value)
         {
-            this.Key = key;
-            this.Value = value;
+            Key = key;
+            Value = value;
         }
 
 
@@ -18,7 +18,7 @@ namespace HttpLib
         public string Value { get; private set; }
         public void SetValue(string value)
         {
-            this.Value = value;
+            Value = value;
         }
         public override string ToString()
         {
@@ -26,11 +26,8 @@ namespace HttpLib
         }
         public string ToStringEscape()
         {
-            if (Value != null)
-            {
-                return Key + "=" + Uri.EscapeDataString(Value);
-            }
-            else { return Key + "="; }
+            if (Value != null) return Key + "=" + Uri.EscapeDataString(Value);
+            else return Key + "=";
         }
     }
 }

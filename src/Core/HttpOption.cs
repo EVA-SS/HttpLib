@@ -8,25 +8,36 @@ namespace HttpLib
 {
     public class HttpOption
     {
-        public string uri = null;
-        public HttpMethod method = HttpMethod.Get;
+        public HttpOption(string _uri) { uri = new Uri(_uri); }
+        public HttpOption(string _uri, HttpMethod _method)
+        {
+            uri = new Uri(_uri);
+            method = _method;
+        }
+        public HttpOption(Uri _uri, HttpMethod _method)
+        {
+            uri = _uri;
+            method = _method;
+        }
 
+        public Uri uri;
+        public HttpMethod method = HttpMethod.Get;
 
         /// <summary>
         /// Get请求的参数
         /// </summary>
-        public List<Val> query = null;
+        public List<Val>? query = null;
         /// <summary>
         /// 请求的参数
         /// </summary>
-        public List<Val> data = null;
-        public string datastr = null;
-        public List<Files> file = null;
+        public List<Val>? data = null;
+        public string? datastr = null;
+        public List<Files>? file = null;
 
         /// <summary>
         /// 请求头
         /// </summary>
-        public List<Val> header = null;
+        public List<Val>? header = null;
 
         /// <summary>
         /// 代理
@@ -36,7 +47,7 @@ namespace HttpLib
         /// <summary>
         /// 编码
         /// </summary>
-        public Encoding encoding = Encoding.UTF8;
+        public Encoding? encoding = null;
 
         /// <summary>
         /// 自动编码
@@ -48,45 +59,28 @@ namespace HttpLib
         /// </summary>
         public bool redirect = false;
 
-
         /// <summary>
         /// 请求超时时长
         /// </summary>
         public int timeout = 0;
 
         /// <summary>
-        /// 保活
-        /// </summary>
-        public bool keepAlive = false;
-
-        /// <summary>
         /// 获取域名IP
         /// </summary>
-        public string IP
+        public string? IP
         {
             get
             {
                 try
                 {
-                    var _uri = new Uri(uri);
-                    IPAddress ip = null;
-                    if (IPAddress.TryParse(_uri.Host, out ip))
-                    {
-                        return ip.ToString();
-                    }
+                    if (IPAddress.TryParse(uri.Host, out IPAddress? ip)) return ip.ToString();
                     else
                     {
-                        IPHostEntry hostEntry = Dns.GetHostEntry(_uri.Host);
-                        IPEndPoint ipEndPoint = new IPEndPoint(hostEntry.AddressList[0], 0);
+                        var hostEntry = Dns.GetHostEntry(uri.Host);
+                        var ipEndPoint = new IPEndPoint(hostEntry.AddressList[0], 0);
                         string _ip = ipEndPoint.Address.ToString();
-                        if (_ip.StartsWith("::"))
-                        {
-                            return "127.0.0.1";
-                        }
-                        else
-                        {
-                            return _ip;
-                        }
+                        if (_ip.StartsWith("::")) return "127.0.0.1";
+                        else return _ip;
                     }
                 }
                 catch { }
@@ -97,53 +91,29 @@ namespace HttpLib
         /// <summary>
         /// 请求URL
         /// </summary>
-        public string Url
+        public Uri Url
         {
             get
             {
-                string uri_temp = uri;
-
                 #region 合并参数
 
                 var param_ = new List<string>();
-                if (method == HttpMethod.Get)
-                {
-                    if (query != null && query.Count > 0)
-                    {
-                        foreach (var item in query)
-                            param_.Add(item.ToString());
-                    }
-                    if (data != null && data.Count > 0)
-                    {
-                        foreach (var item in data)
-                            param_.Add(item.ToString());
-                    }
-                }
-                if (query != null && query.Count > 0)
-                {
-                    if (query != null && query.Count > 0)
-                    {
-                        foreach (var item in query)
-                            param_.Add(item.ToString());
-                    }
-                }
+                if (query != null && query.Count > 0) foreach (var item in query) param_.Add(item.ToString());
+
+                if (method == HttpMethod.Get && data != null && data.Count > 0) foreach (var item in data) param_.Add(item.ToString());
 
                 #endregion
 
                 if (param_.Count > 0)
                 {
-                    if (uri_temp.Contains("?"))
-                    {
-                        return uri + string.Join("&", param_);
-                    }
-                    else
-                    {
-                        return uri + "?" + string.Join("&", param_);
-                    }
+                    if (uri.AbsoluteUri.Contains("?")) return new Uri(uri.AbsoluteUri + "&" + string.Join("&", param_));
+                    else return new Uri(uri.AbsoluteUri + "?" + string.Join("&", param_));
                 }
-                else { return uri; }
+
+                return uri;
             }
         }
+
 
         public string FileName(WebResult _web)
         {
@@ -164,15 +134,13 @@ namespace HttpLib
                     return filename;
                 }
             }
-            var _uri = new Uri(uri);
-            if (_uri.Query.Length > 0)
-                return Path.GetFileName(uri.Substring(0, uri.Length - _uri.Query.Length));
-            return Path.GetFileName(uri);
+            if (uri.Query.Length > 0) return Path.GetFileName(uri.AbsoluteUri.Substring(0, uri.AbsoluteUri.Length - uri.Query.Length));
+            return Path.GetFileName(uri.AbsoluteUri);
         }
 
         public override string ToString()
         {
-            return uri;
+            return uri.AbsoluteUri;
         }
     }
 }

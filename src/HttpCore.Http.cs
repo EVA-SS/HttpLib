@@ -13,7 +13,7 @@ namespace HttpLib
         public HttpOption option;
         public HttpCore(string uri, HttpMethod method)
         {
-            option = new HttpOption { uri = uri, method = method };
+            option = new HttpOption(uri, method);
         }
         public HttpCore(HttpOption _option)
         {
@@ -199,10 +199,20 @@ namespace HttpLib
         /// <summary>
         /// 请求的参数
         /// </summary>
-        /// <param name="val">application/text</param>
         public HttpCore data(string val)
         {
             option.datastr = val;
+            return this;
+        }
+
+        /// <summary>
+        /// 请求的参数
+        /// </summary>
+        /// <param name="val">text/plain</param>
+        public HttpCore datastr(string val, string contentType = "text/plain")
+        {
+            option.datastr = val;
+            header("Content-Type", contentType);
             return this;
         }
 
@@ -407,19 +417,9 @@ namespace HttpLib
 
         #endregion
 
-        #region 保活
-
-        public HttpCore keepAlive(bool keepAlive = true)
+        public void CreateRequest(ref HttpWebRequest? req)
         {
-            option.keepAlive = keepAlive;
-            return this;
-        }
-
-        #endregion
-
-        public void CreateRequest(ref HttpWebRequest req)
-        {
-            var uri = new Uri(option.Url);
+            var uri = option.Url;
             CookieContainer cookies = new CookieContainer();
 
             #region SSL
@@ -429,38 +429,27 @@ namespace HttpLib
 
             #endregion
 
-            req = (HttpWebRequest)HttpWebRequest.Create(uri);
+            req = (HttpWebRequest)WebRequest.Create(uri);
 
-            if (option.proxy != null)
-                req.Proxy = option.proxy;
-            else
-                req.Proxy = Config._proxy;
-            req.KeepAlive = option.keepAlive;
+            if (option.proxy != null) req.Proxy = option.proxy;
+            else req.Proxy = Config._proxy;
             req.Method = option.method.ToString().ToUpper();
             req.AutomaticDecompression = Config.DecompressionMethod;
             req.CookieContainer = cookies;
             req.Host = uri.Host;
 
-            if (option.redirect)
-                req.AllowAutoRedirect = option.redirect;
-            else
-                req.AllowAutoRedirect = Config.Redirect;
+            if (option.redirect) req.AllowAutoRedirect = option.redirect;
+            else req.AllowAutoRedirect = Config.Redirect;
             Encoding encoding = option.encoding != null ? option.encoding : Encoding.UTF8;
-            if (option.timeout > 0)
-                req.Timeout = option.timeout;
+            if (option.timeout > 0) req.Timeout = option.timeout;
 
             req.Credentials = CredentialCache.DefaultCredentials;
             req.UserAgent = Config.UserAgent;
 
             bool isContentType = false;
-            if (Config._headers != null && Config._headers.Count > 0)
-            {
-                SetHeader(out isContentType, req, Config._headers, cookies);
-            }
-            if (option.header != null && option.header.Count > 0)
-            {
-                SetHeader(out isContentType, req, option.header, cookies);
-            }
+            if (Config._headers != null && Config._headers.Count > 0) SetHeader(out isContentType, req, Config._headers, cookies);
+
+            if (option.header != null && option.header.Count > 0) SetHeader(out isContentType, req, option.header, cookies);
 
             #region 准备上传数据
 
@@ -468,13 +457,11 @@ namespace HttpLib
             {
                 if (!string.IsNullOrEmpty(option.datastr))
                 {
-                    if (!isContentType)
-                    {
-                        req.ContentType = "application/text";
-                    }
+                    if (!isContentType) req.ContentType = "application/text";
+
                     byte[] bs = encoding.GetBytes(option.datastr);
                     req.ContentLength = bs.Length;
-                    using (Stream reqStream = req.GetRequestStream())
+                    using (var reqStream = req.GetRequestStream())
                     {
                         reqStream.Write(bs, 0, bs.Length);
                     }
@@ -613,19 +600,17 @@ namespace HttpLib
                 }
                 else if (option.data != null && option.data.Count > 0)
                 {
-                    if (!isContentType)
-                    {
-                        req.ContentType = "application/x-www-form-urlencoded";
-                    }
+                    if (!isContentType) req.ContentType = "application/x-www-form-urlencoded";
+
                     var param_ = new List<string>();
-                    foreach (var item in option.data)
-                    {
-                        param_.Add(item.ToStringEscape());
-                    }
+                    foreach (var item in option.data) param_.Add(item.ToStringEscape());
+
                     byte[] bs = encoding.GetBytes(string.Join("&", param_));
                     req.ContentLength = bs.Length;
                     using (var reqStream = req.GetRequestStream())
+                    {
                         reqStream.Write(bs, 0, bs.Length);
+                    }
                 }
             }
 

@@ -25,7 +25,7 @@ namespace HttpLib
 
         void requestAsyncCore()
         {
-            TaskResult val = Go(resultMode);
+            var val = Go(resultMode);
             if (val != null && val.web != null)
             {
                 switch (resultMode)
@@ -56,13 +56,10 @@ namespace HttpLib
         /// 同步请求
         /// </summary>
         /// <returns>不下载流</returns>
-        public WebResult requestNone()
+        public WebResult? requestNone()
         {
-            TaskResult val = Go(0);
-            if (val != null)
-            {
-                return val.web;
-            }
+            var val = Go(0);
+            if (val != null) return val.web;
             return null;
         }
 
@@ -73,7 +70,7 @@ namespace HttpLib
         /// <param name="savePath">保存目录</param>
         /// <param name="saveName">保存文件名称（为空自动获取）</param>
         /// <returns>返回保存文件路径，为空下载失败</returns>
-        public Task<string> download(string savePath, string saveName = null)
+        public Task<string?> download(string savePath, string? saveName = null)
         {
             return Task.Factory.StartNew(() =>
             {
@@ -89,7 +86,7 @@ namespace HttpLib
         /// <param name="savePath">保存目录</param>
         /// <param name="saveName">保存文件名称（为空自动获取）</param>
         /// <returns>返回保存文件路径，为空下载失败</returns>
-        public async Task<string> download(string savePath, string saveName = null)
+        public async Task<string?> download(string savePath, string? saveName = null)
         {
             var val = Go(3, savePath, saveName);
             if (val != null) return val.str;
@@ -101,13 +98,10 @@ namespace HttpLib
         /// 同步请求
         /// </summary>
         /// <returns>字节类型</returns>
-        public byte[] requestData()
+        public byte[]? requestData()
         {
-            TaskResult val = Go(2);
-            if (val != null)
-            {
-                return val.data;
-            }
+            var val = Go(2);
+            if (val != null) return val.data;
             return null;
         }
 
@@ -115,9 +109,9 @@ namespace HttpLib
         /// 同步请求
         /// </summary>
         /// <returns>字节类型</returns>
-        public byte[] requestData(out WebResult result)
+        public byte[]? requestData(out WebResult? result)
         {
-            TaskResult val = Go(2);
+            var val = Go(2);
             if (val != null)
             {
                 result = val.web;
@@ -131,21 +125,22 @@ namespace HttpLib
         /// 同步请求
         /// </summary>
         /// <returns>字符串类型</returns>
-        public string request()
+        public string? request()
         {
-            TaskResult val = Go(1);
-            if (val != null)
-                return val.str;
+            action_eventstream = null;
+            var val = Go(1);
+            if (val != null) return val.str;
             return null;
         }
 
         /// <summary>
         /// 同步请求
         /// </summary>
-        /// <returns>字节类型</returns>
-        public string request(out WebResult result)
+        /// <returns>字符串类型</returns>
+        public string? request(out WebResult? result)
         {
-            TaskResult val = Go(1);
+            action_eventstream = null;
+            var val = Go(1);
             if (val != null)
             {
                 result = val.web;
@@ -155,14 +150,25 @@ namespace HttpLib
             return null;
         }
 
+        Action<string>? action_eventstream = null;
+        /// <summary>
+        /// 流式请求
+        /// </summary>
+        /// <returns>字符串类型</returns>
+        public void request(Action<string> eventstream)
+        {
+            action_eventstream = eventstream;
+            Go(1);
+        }
+
         #region 对象
 
-        HttpWebRequest req;
-        HttpWebResponse response = null;
+        HttpWebRequest? req;
+        HttpWebResponse? response = null;
 
         #endregion
 
-        TaskResult Go(int resultMode, string savePath = null, string saveName = null)
+        TaskResult? Go(int resultMode, string? savePath = null, string? saveName = null)
         {
             try
             {
@@ -175,78 +181,81 @@ namespace HttpLib
                     if (_responseProgresMax != null)
                         _responseProgresMax(response_max);
                     if (_requestBefore2 != null)
-                        if (!_requestBefore2(response))
-                            return null;
+                        if (!_requestBefore2(response)) return null;
 
-                    WebResult _web = GetWebResult(response);
+                    var _web = GetWebResult(response);
 
-                    if (_requestBefore != null)
-                        if (!_requestBefore(response, _web))
-                            return null;
-                    if (_requestBefore3 != null)
-                        if (!_requestBefore3(_web))
-                            return null;
+                    if (_requestBefore != null && !_requestBefore(response, _web)) return null;
+                    if (_requestBefore3 != null && !_requestBefore3(_web)) return null;
+
 
                     switch (resultMode)
                     {
                         case 0:
-                            using (Stream stream = response.GetResponseStream())
-                                return null;
-                        case 3:
-                            using (Stream stream = response.GetResponseStream())
+                            using (var stream = response.GetResponseStream())
                             {
-                                DownStream(response_max, _web, stream, out string outfile, savePath, saveName);
+                                return null;
+                            }
+                        case 3:
+                            using (var stream = response.GetResponseStream())
+                            {
+                                DownStream(response_max, _web, stream, out var outfile, savePath, saveName);
                                 return new TaskResult(_web, outfile);
                             }
                         case 1:
-                            using (Stream stream = response.GetResponseStream())
+                            if (action_eventstream == null)
                             {
-                                byte[] data = DownStream(response_max, _web, stream, out string outfile);
-                                if (data == null)
+                                using (var stream = response.GetResponseStream())
                                 {
-                                    return null;
+                                    var data = DownStream(response_max, _web, stream, out _);
+                                    if (data == null) return null;
+                                    else
+                                    {
+                                        var encodings = option.encoding;
+                                        if (encodings == null || option.autoencode) encodings = GetEncoding(response, data);
+                                        return new TaskResult(_web, encodings.GetString(data));
+                                    }
                                 }
-                                else
+                            }
+                            else
+                            {
+                                using (var reader = new StreamReader(response.GetResponseStream()))
                                 {
-                                    Encoding encodings = option.encoding;
-                                    if (encodings == null || option.autoencode) encodings = GetEncoding(response, data);
-                                    return new TaskResult(_web, encodings.GetString(data));
+                                    string line = string.Empty;
+                                    while (!reader.EndOfStream)
+                                    {
+                                        line += reader.ReadLine();
+                                        action_eventstream(line);
+                                    }
+                                    return null;
                                 }
                             }
                         case 2:
-                            using (Stream stream = response.GetResponseStream())
+                            using (var stream = response.GetResponseStream())
                             {
-                                return new TaskResult(_web, DownStream(response_max, _web, stream, out string outfile));
+                                return new TaskResult(_web, DownStream(response_max, _web, stream, out _));
                             }
+
                     }
                 }
                 response = null;
             }
             catch (Exception err)
             {
-                if (err is WebException)
+                if (err is WebException err_web && err_web.Response is HttpWebResponse response)
                 {
-                    Config.OnFail(this, GetWebResult((err as WebException).Response as HttpWebResponse), err);
-                    if (_fail3 != null)
-                        _fail3(GetWebResult((err as WebException).Response as HttpWebResponse), err);
-                    else if (_fail2 != null)
-                    {
-                        HttpWebResponse response = (err as WebException).Response as HttpWebResponse;
-                        _fail2(response == null ? 0 : (int)response.StatusCode, err);
-                    }
-                    else if (_fail != null)
-                        _fail(err);
-                    return new TaskResult(GetWebResult((err as WebException).Response as HttpWebResponse));
+                    Config.OnFail(this, GetWebResult(response), err);
+                    if (_fail3 != null) _fail3(GetWebResult(response), err);
+                    else if (_fail2 != null) _fail2((int)response.StatusCode, err);
+                    else if (_fail != null) _fail(err);
+                    return new TaskResult(GetWebResult(response));
                 }
                 else
                 {
                     Config.OnFail(this, null, err);
-                    if (_fail3 != null)
-                        _fail3(null, err);
-                    else if (_fail2 != null)
-                        _fail2(-1, err);
-                    else if (_fail != null)
-                        _fail(err);
+                    if (_fail3 != null) _fail3(null, err);
+                    else if (_fail2 != null) _fail2(-1, err);
+                    else if (_fail != null) _fail(err);
                 }
             }
             return null;
@@ -258,13 +267,13 @@ namespace HttpLib
                 type = 0;
                 web = _web;
             }
-            public TaskResult(WebResult _web, byte[] _data)
+            public TaskResult(WebResult _web, byte[]? _data)
             {
                 type = 2;
                 web = _web;
                 data = _data;
             }
-            public TaskResult(WebResult _web, string _str)
+            public TaskResult(WebResult _web, string? _str)
             {
                 type = 1;
                 web = _web;
@@ -272,8 +281,8 @@ namespace HttpLib
             }
             public WebResult web { get; set; }
             public int type { get; set; }
-            public string str { get; set; }
-            public byte[] data { get; set; }
+            public string? str { get; set; }
+            public byte[]? data { get; set; }
         }
 
         #region 请求头-帮助
@@ -396,7 +405,7 @@ namespace HttpLib
 
         WebResult GetWebResult(HttpWebResponse response)
         {
-            if (response == null) { return null; }
+            if (response == null) return null;
             var _web = new WebResult
             {
                 StatusCode = (int)response.StatusCode,
@@ -414,36 +423,30 @@ namespace HttpLib
             foreach (string str in response.Headers.AllKeys)
             {
                 string val = response.Headers[str];
-                if (_header.ContainsKey(str))
-                    _header[str].Add(val);
-                else
-                    _header.Add(str, new List<string> { val });
+                if (_header.ContainsKey(str)) _header[str].Add(val);
+                else _header.Add(str, new List<string> { val });
             }
             foreach (Cookie cookie in response.Cookies)
             {
-                if (_cookie.ContainsKey(cookie.Name))
-                    _cookie[cookie.Name].Add(cookie.Value);
-                else
-                    _cookie.Add(cookie.Name, new List<string> { cookie.Value });
+                if (_cookie.ContainsKey(cookie.Name)) _cookie[cookie.Name].Add(cookie.Value);
+                else _cookie.Add(cookie.Name, new List<string> { cookie.Value });
             }
 
             #endregion
 
-            foreach (var item in _header)
-                _web.Header.Add(item.Key, string.Join("; ", item.Value));
+            foreach (var item in _header) _web.Header.Add(item.Key, string.Join("; ", item.Value));
 
             if (_cookie.Count > 0)
             {
                 _web.Cookie = new Dictionary<string, string>();
-                foreach (var item in _cookie)
-                    _web.Cookie.Add(item.Key, string.Join(";", item.Value));
+                foreach (var item in _cookie) _web.Cookie.Add(item.Key, string.Join(";", item.Value));
             }
 
             return _web;
         }
         public long Val = 0, Max = 0;
 
-        byte[] DownStream(long response_max, WebResult _web, Stream stream, out string outfile, string savePath = null, string saveName = null)
+        byte[]? DownStream(long response_max, WebResult _web, Stream stream, out string outfile, string? savePath = null, string? saveName = null)
         {
             Max = response_max;
             long response_val = 0;
@@ -509,7 +512,6 @@ namespace HttpLib
                 }
             }
         }
-
 
         byte[] GetByStream(WebResult _web, Stream stream)
         {
