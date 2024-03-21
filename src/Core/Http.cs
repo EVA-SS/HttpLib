@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace HttpLib
@@ -8,14 +9,14 @@ namespace HttpLib
     /// </summary>
     public static class Http
     {
+        #region SSL
+
         static Http()
         {
 #if NET40
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls;
-#elif NETSTANDARD2_0
+#elif NET45 || NET46 || NETSTANDARD2_0 || NETSTANDARD2_1
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-#elif NETSTANDARD2_1
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12 | SecurityProtocolType.SystemDefault | SecurityProtocolType.Ssl3;
 #elif NET48
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3 | SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
 #else
@@ -23,38 +24,82 @@ namespace HttpLib
 #endif
         }
 
+        #endregion
+
+        /// <summary>
+        /// GET 请求
+        /// </summary>
+        /// <param name="url">地址</param>
         public static HttpCore Get(this string url)
         {
             return Core(url, HttpMethod.Get);
         }
-
-        public static HttpCore Head(this string url)
+        /// <summary>
+        /// GET 请求
+        /// </summary>
+        /// <param name="url">地址</param>
+        public static HttpCore Get(this Uri url)
         {
-            return Core(url, HttpMethod.Head);
+            return Core(url, HttpMethod.Get);
         }
 
+        /// <summary>
+        /// POST 请求
+        /// </summary>
+        /// <param name="url">地址</param>
         public static HttpCore Post(this string url)
         {
             return Core(url, HttpMethod.Post);
         }
+        /// <summary>
+        /// POST 请求
+        /// </summary>
+        /// <param name="url">地址</param>
+        public static HttpCore Post(this Uri url)
+        {
+            return Core(url, HttpMethod.Post);
+        }
 
+        /// <summary>
+        /// Put 请求
+        /// </summary>
+        /// <param name="url">地址</param>
         public static HttpCore Put(this string url)
         {
             return Core(url, HttpMethod.Put);
         }
-
-        public static HttpCore Patch(this string url)
+        /// <summary>
+        /// Put 请求
+        /// </summary>
+        /// <param name="url">地址</param>
+        public static HttpCore Put(this Uri url)
         {
-            return Core(url, HttpMethod.Patch);
+            return Core(url, HttpMethod.Put);
         }
 
+        /// <summary>
+        /// Delete 请求
+        /// </summary>
+        /// <param name="url">地址</param>
         public static HttpCore Delete(this string url)
+        {
+            return Core(url, HttpMethod.Delete);
+        }
+        /// <summary>
+        /// Delete 请求
+        /// </summary>
+        /// <param name="url">地址</param>
+        public static HttpCore Delete(this Uri url)
         {
             return Core(url, HttpMethod.Delete);
         }
 
 
         public static HttpCore Core(this string url, HttpMethod method)
+        {
+            return new HttpCore(url, method);
+        }
+        public static HttpCore Core(this Uri url, HttpMethod method)
         {
             return new HttpCore(url, method);
         }

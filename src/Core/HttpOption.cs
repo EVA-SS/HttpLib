@@ -8,10 +8,10 @@ namespace HttpLib
 {
     public class HttpOption
     {
-        public HttpOption(string _uri) { uri = new Uri(_uri); }
-        public HttpOption(string _uri, HttpMethod _method)
+        public HttpOption(string url) { uri = new Uri(url); }
+        public HttpOption(string url, HttpMethod _method)
         {
-            uri = new Uri(_uri);
+            uri = new Uri(url);
             method = _method;
         }
         public HttpOption(Uri _uri, HttpMethod _method)
@@ -20,49 +20,64 @@ namespace HttpLib
             method = _method;
         }
 
-        public Uri uri;
-        public HttpMethod method = HttpMethod.Get;
+        public Uri uri { get; }
+        public HttpMethod method { get; set; } = HttpMethod.Get;
+
+        #region 参数
 
         /// <summary>
-        /// Get请求的参数
+        /// Get参数
         /// </summary>
-        public List<Val>? query = null;
+        public List<Val>? query { get; set; }
         /// <summary>
-        /// 请求的参数
+        /// 参数
         /// </summary>
-        public List<Val>? data = null;
-        public string? datastr = null;
-        public List<Files>? file = null;
+        public List<Val>? data { get; set; }
+        /// <summary>
+        /// body参数
+        /// </summary>
+        public string? datastr { get; set; }
 
         /// <summary>
-        /// 请求头
+        /// 上传文件
         /// </summary>
-        public List<Val>? header = null;
+        public List<Files>? file { get; set; }
+
+        #endregion
+
+        #region 头
+
+        /// <summary>
+        /// 头
+        /// </summary>
+        public List<Val>? header { get; set; }
+
+        #endregion
 
         /// <summary>
         /// 代理
         /// </summary>
-        public IWebProxy proxy = null;
+        public IWebProxy? proxy { get; set; }
 
         /// <summary>
         /// 编码
         /// </summary>
-        public Encoding? encoding = null;
+        public Encoding? encoding { get; set; }
 
         /// <summary>
         /// 自动编码
         /// </summary>
-        public bool autoencode = false;
+        public bool autoencode { get; set; }
 
         /// <summary>
         /// 请求重定向
         /// </summary>
-        public bool redirect = false;
+        public bool redirect { get; set; }
 
         /// <summary>
         /// 请求超时时长
         /// </summary>
-        public int timeout = 0;
+        public int timeout { get; set; }
 
         /// <summary>
         /// 获取域名IP
@@ -97,23 +112,22 @@ namespace HttpLib
             {
                 #region 合并参数
 
-                var param_ = new List<string>();
-                if (query != null && query.Count > 0) foreach (var item in query) param_.Add(item.ToString());
+                var data = new List<string>();
+                if (query != null && query.Count > 0) foreach (var it in query) data.Add(it.ToStringEscape());
 
-                if (method == HttpMethod.Get && data != null && data.Count > 0) foreach (var item in data) param_.Add(item.ToString());
+                if (method == HttpMethod.Get && this.data != null && this.data.Count > 0) foreach (var it in this.data) data.Add(it.ToStringEscape());
 
                 #endregion
 
-                if (param_.Count > 0)
+                if (data.Count > 0)
                 {
-                    if (uri.AbsoluteUri.Contains("?")) return new Uri(uri.AbsoluteUri + "&" + string.Join("&", param_));
-                    else return new Uri(uri.AbsoluteUri + "?" + string.Join("&", param_));
+                    if (string.IsNullOrEmpty(uri.Query)) return new Uri(uri.AbsoluteUri + "?" + string.Join("&", data));
+                    else return new Uri(uri.AbsoluteUri + "&" + string.Join("&", data));
                 }
 
                 return uri;
             }
         }
-
 
         public string FileName(WebResult _web)
         {

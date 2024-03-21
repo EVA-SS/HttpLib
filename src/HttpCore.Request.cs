@@ -150,12 +150,12 @@ namespace HttpLib
             return null;
         }
 
-        Action<string>? action_eventstream = null;
+        Action<string?>? action_eventstream = null;
         /// <summary>
         /// 流式请求
         /// </summary>
         /// <returns>字符串类型</returns>
-        public void request(Action<string> eventstream)
+        public void request(Action<string?> eventstream)
         {
             action_eventstream = eventstream;
             Go(1);
@@ -221,12 +221,7 @@ namespace HttpLib
                             {
                                 using (var reader = new StreamReader(response.GetResponseStream()))
                                 {
-                                    string line = string.Empty;
-                                    while (!reader.EndOfStream)
-                                    {
-                                        line += reader.ReadLine();
-                                        action_eventstream(line);
-                                    }
+                                    while (!reader.EndOfStream) action_eventstream(reader.ReadLine());
                                     return null;
                                 }
                             }

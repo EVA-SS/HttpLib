@@ -79,7 +79,7 @@ namespace HttpLib
 
         #region 代理
 
-        public static IWebProxy _proxy = null;
+        public static IWebProxy? _proxy = null;
 
         /// <summary>
         /// 全局代理

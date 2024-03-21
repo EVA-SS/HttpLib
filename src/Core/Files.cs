@@ -3,14 +3,30 @@
 namespace HttpLib
 {
     /// <summary>
-    /// 文件是一个简单的数据结构，它包含一个文件名和流
+    /// 文件
     /// </summary>
-    public sealed class Files
+    public class Files
     {
-        public string Name { get; private set; }
-        public string FileName { get; private set; }
-        public string ContentType { get; private set; }
-        public Stream Stream { get; private set; }
+        /// <summary>
+        /// 参数名称
+        /// </summary>
+        public string Name { get; set; }
+        /// <summary>
+        /// 文件名
+        /// </summary>
+        public string FileName { get; set; }
+        /// <summary>
+        /// 文件类型
+        /// </summary>
+        public string ContentType { get; set; }
+        /// <summary>
+        /// 文件流
+        /// </summary>
+        public Stream Stream { get; set; }
+
+        /// <summary>
+        /// 文件大小
+        /// </summary>
         public long Size { get; private set; }
 
         /// <summary>
@@ -22,11 +38,11 @@ namespace HttpLib
         /// <param name="stream">字节流</param>
         public Files(string name, string fileName, string contentType, byte[] data)
         {
-            this.Name = name;
-            this.FileName = fileName;
-            this.ContentType = contentType;
-            this.Size = data.Length;
-            this.Stream = new MemoryStream(data);
+            Name = name;
+            FileName = fileName;
+            ContentType = contentType;
+            Size = data.Length;
+            Stream = new MemoryStream(data);
         }
 
         /// <summary>
@@ -36,13 +52,12 @@ namespace HttpLib
         /// <param name="fullName">文件路径</param>
         public Files(string name, string fullName)
         {
-            this.Name = name;
+            Name = name;
             var fileInfo = new FileInfo(fullName);
-            this.FileName = fileInfo.Name;
-            string contentType = MimeMapping.GetMimeMapping(fullName);
-            this.ContentType = contentType;
-            this.Stream = File.OpenRead(fullName);
-            this.Size = this.Stream.Length;
+            FileName = fileInfo.Name;
+            ContentType = MimeMapping.GetMimeMapping(fullName);
+            Stream = File.OpenRead(fullName);
+            Size = Stream.Length;
         }
 
         /// <summary>

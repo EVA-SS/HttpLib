@@ -13,17 +13,24 @@ namespace HttpLib
             Value = value;
         }
 
-
-        public string Key { get; private set; }
-        public string Value { get; private set; }
+        /// <summary>
+        /// 键
+        /// </summary>
+        public string Key { get; set; }
+        /// <summary>
+        /// 值
+        /// </summary>
+        public string Value { get; set; }
         public void SetValue(string value)
         {
             Value = value;
         }
+
         public override string ToString()
         {
             return Key + "=" + Value;
         }
+
         public string ToStringEscape()
         {
             if (Value != null) return Key + "=" + Uri.EscapeDataString(Value);

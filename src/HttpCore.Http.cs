@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Text;
 
 namespace HttpLib
@@ -12,6 +11,10 @@ namespace HttpLib
     {
         public HttpOption option;
         public HttpCore(string uri, HttpMethod method)
+        {
+            option = new HttpOption(uri, method);
+        }
+        public HttpCore(Uri uri, HttpMethod method)
         {
             option = new HttpOption(uri, method);
         }
@@ -28,8 +31,8 @@ namespace HttpLib
         /// <param name="vals">多个参数</param>
         public HttpCore query(params Val[] vals)
         {
-            foreach (var val in vals)
-                Config.setVals(ref option.query, val);
+            if (option.query == null) option.query = new List<Val>(vals.Length);
+            option.query.AddRange(vals);
             return this;
         }
 
@@ -37,10 +40,10 @@ namespace HttpLib
         /// 请求参(GET)
         /// </summary>
         /// <param name="vals">多个参数</param>
-        public HttpCore query(List<Val> vals)
+        public HttpCore query(IList<Val> vals)
         {
-            foreach (var val in vals)
-                Config.setVals(ref option.query, val);
+            if (option.query == null) option.query = new List<Val>(vals.Count);
+            option.query.AddRange(vals);
             return this;
         }
 
@@ -51,7 +54,8 @@ namespace HttpLib
         /// <param name="val">值</param>
         public HttpCore query(string key, string val)
         {
-            Config.setVals(ref option.query, key, val);
+            if (option.query == null) option.query = new List<Val> { new Val(key, val) };
+            else option.query.Add(new Val(key, val));
             return this;
         }
 
@@ -61,8 +65,11 @@ namespace HttpLib
         /// <param name="vals">多个参数</param>
         public HttpCore query(IDictionary<string, string> vals)
         {
-            foreach (var item in vals)
-                Config.setVals(ref option.query, item.Key, item.Value);
+            if (option.query == null) option.query = new List<Val>(vals.Count);
+            foreach (var it in vals)
+            {
+                option.query.Add(new Val(it.Key, it.Value));
+            }
             return this;
         }
 
@@ -72,15 +79,16 @@ namespace HttpLib
         /// <param name="data">多个参数</param>
         public HttpCore query(object data)
         {
-            foreach (var item in data.GetType().GetProperties())
+            var list = data.GetType().GetProperties();
+            var vals = new List<Val>(list.Length);
+            foreach (var it in list)
             {
-                string key = item.Name;
-                if (key != "_")
-                    key = key.TrimEnd('_');
-                object valO = item.GetValue(data, null);
-                if (valO != null)
-                    Config.setVals(ref option.query, key, valO.ToString());
+                string key = it.Name;
+                if (key != "_" && key.EndsWith("_")) key = key.TrimEnd('_');
+                var valO = it.GetValue(data, null);
+                if (valO != null) vals.Add(new Val(key, valO.ToString()));
             }
+            if (vals.Count > 0) return query(vals);
             return this;
         }
 
@@ -91,11 +99,11 @@ namespace HttpLib
         /// <summary>
         /// 请求参
         /// </summary>
-        /// <param name="val">多个参数</param>
+        /// <param name="vals">多个参数</param>
         public HttpCore data(params Val[] vals)
         {
-            foreach (var val in vals)
-                Config.setVals(ref option.data, val);
+            if (option.data == null) option.data = new List<Val>(vals.Length);
+            option.data.AddRange(vals);
             return this;
         }
 
@@ -103,10 +111,10 @@ namespace HttpLib
         /// 请求参
         /// </summary>
         /// <param name="vals">多个参数</param>
-        public HttpCore data(List<Val> vals)
+        public HttpCore data(IList<Val> vals)
         {
-            foreach (var val in vals)
-                Config.setVals(ref option.data, val);
+            if (option.data == null) option.data = new List<Val>(vals.Count);
+            option.data.AddRange(vals);
             return this;
         }
 
@@ -117,98 +125,62 @@ namespace HttpLib
         /// <param name="val">值</param>
         public HttpCore data(string key, string val)
         {
-            Config.setVals(ref option.data, key, val);
+            if (option.data == null) option.data = new List<Val> { new Val(key, val) };
+            else option.data.Add(new Val(key, val));
             return this;
         }
 
         /// <summary>
-        /// 请求的参数
+        /// 请求参
         /// </summary>
         /// <param name="vals">多个参数</param>
         public HttpCore data(IDictionary<string, string> vals)
         {
-            foreach (var val in vals)
-                Config.setVals(ref option.data, val.Key, val.Value);
-            return this;
-        }
-
-        /// <summary>
-        /// 请求的参数
-        /// </summary>
-        /// <param name="vals">多个参数</param>
-        public HttpCore data(IDictionary<string, string[]> vals)
-        {
-            if (option.method == HttpMethod.Get)
+            if (option.data == null) option.data = new List<Val>(vals.Count);
+            foreach (var it in vals)
             {
-                throw new Exception("Get不支持数组");
-            }
-            foreach (var val in vals)
-                foreach (var items in val.Value)
-                    Config.setVals(ref option.data, val.Key + "[]", items);
-            return this;
-        }
-
-        /// <summary>
-        /// 请求的参数
-        /// </summary>
-        /// <param name="vals">多个参数</param>
-        public HttpCore data(IDictionary<string, List<string>> vals)
-        {
-            if (option.method == HttpMethod.Get)
-            {
-                throw new Exception("Get不支持数组");
-            }
-            foreach (var val in vals)
-                foreach (var items in val.Value)
-                    Config.setVals(ref option.data, val.Key + "[]", items);
-            return this;
-        }
-
-        /// <summary>
-        /// 请求的参数
-        /// </summary>
-        /// <param name="data">多个参数</param>
-        public HttpCore data(object data)
-        {
-            PropertyInfo[] properties = data.GetType().GetProperties();
-            foreach (var item in properties)
-            {
-                object valO = item.GetValue(data, null);
-                if (valO != null)
-                {
-                    string key = item.Name;
-                    if (key != "_")
-                    {
-                        key = key.TrimEnd('_');
-                    }
-                    string tname = valO.GetType().Name;
-                    if (typeof(System.Collections.IList).IsAssignableFrom(valO.GetType()))
-                    {
-                        if (option.method == HttpMethod.Get)
-                            throw new Exception("Get不支持数组");
-                        foreach (var items in valO as System.Collections.IList)
-                            Config.setVals(ref option.data, key + "[]", items.ToString());
-                    }
-                    else
-                        Config.setVals(ref option.data, key, valO.ToString());
-                }
+                option.data.Add(new Val(it.Key, it.Value));
             }
             return this;
         }
 
         /// <summary>
-        /// 请求的参数
+        /// 请求参
         /// </summary>
-        public HttpCore data(string val)
+        /// <param name="_data">多个参数</param>
+        public HttpCore data(object _data)
         {
-            option.datastr = val;
+            var list = _data.GetType().GetProperties();
+            var vals = new List<Val>(list.Length);
+            foreach (var it in list)
+            {
+                string key = it.Name;
+                if (key != "_" && key.EndsWith("_")) key = key.TrimEnd('_');
+                var valO = it.GetValue(_data, null);
+                if (valO != null) vals.Add(new Val(key, valO.ToString()));
+            }
+            if (vals.Count > 0) return data(vals);
             return this;
         }
 
         /// <summary>
-        /// 请求的参数
+        /// 请求参（数组）
+        /// </summary>
+        /// <param name="key">键</param>
+        /// <param name="val">值</param>
+        public HttpCore data(string key, IList<string> val)
+        {
+            if (option.method == HttpMethod.Get) throw new Exception("Get不支持数组");
+            if (option.data == null) option.data = new List<Val>(val.Count);
+            foreach (var it in val) option.data.Add(new Val(key + "[]", it));
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参
         /// </summary>
         /// <param name="val">text/plain</param>
+        /// <param name="contentType">类型</param>
         public HttpCore datastr(string val, string contentType = "text/plain")
         {
             option.datastr = val;
@@ -219,30 +191,24 @@ namespace HttpLib
         #region 文件
 
         /// <summary>
-        /// 文件上传
+        /// 请求参（文件）
         /// </summary>
-        /// <param name="vals">多个文件</param>
-        public HttpCore data(params Files[] vals)
+        /// <param name="files">多个文件</param>
+        public HttpCore data(params Files[] files)
         {
-            if (option.file == null)
-            {
-                option.file = new List<Files>();
-            }
-            option.file.AddRange(vals);
+            if (option.file == null) option.file = new List<Files>(files.Length);
+            option.file.AddRange(files);
             return this;
         }
 
         /// <summary>
-        /// 文件上传
+        /// 请求参（文件）
         /// </summary>
-        /// <param name="vals">多个文件</param>
-        public HttpCore data(List<Files> vals)
+        /// <param name="files">多个文件</param>
+        public HttpCore data(IList<Files> files)
         {
-            if (option.file == null)
-            {
-                option.file = new List<Files>();
-            }
-            option.file.AddRange(vals);
+            if (option.file == null) option.file = new List<Files>(files.Count);
+            option.file.AddRange(files);
             return this;
         }
 
@@ -255,22 +221,22 @@ namespace HttpLib
         /// <summary>
         /// 请求头
         /// </summary>
-        /// <param name="vals">多个请求头</param>
+        /// <param name="vals">多个参数</param>
         public HttpCore header(params Val[] vals)
         {
-            foreach (var item in vals)
-                Config.setVals(ref option.header, item);
+            if (option.header == null) option.header = new List<Val>(vals.Length);
+            option.header.AddRange(vals);
             return this;
         }
 
         /// <summary>
         /// 请求头
         /// </summary>
-        /// <param name="vals">多个请求头</param>
-        public HttpCore header(List<Val> vals)
+        /// <param name="vals">多个参数</param>
+        public HttpCore header(IList<Val> vals)
         {
-            foreach (var item in vals)
-                Config.setVals(ref option.header, item);
+            if (option.header == null) option.header = new List<Val>(vals.Count);
+            option.header.AddRange(vals);
             return this;
         }
 
@@ -281,34 +247,41 @@ namespace HttpLib
         /// <param name="val">值</param>
         public HttpCore header(string key, string val)
         {
-            Config.setVals(ref option.header, key, val);
+            if (option.header == null) option.header = new List<Val> { new Val(key, val) };
+            else option.header.Add(new Val(key, val));
             return this;
         }
 
         /// <summary>
         /// 请求头
         /// </summary>
-        /// <param name="vals">多个请求头</param>
+        /// <param name="vals">多个参数</param>
         public HttpCore header(IDictionary<string, string> vals)
         {
-            foreach (var item in vals)
-                Config.setVals(ref option.header, item.Key, item.Value);
+            if (option.header == null) option.header = new List<Val>(vals.Count);
+            foreach (var it in vals)
+            {
+                option.header.Add(new Val(it.Key, it.Value));
+            }
             return this;
         }
 
         /// <summary>
         /// 请求头
         /// </summary>
-        /// <param name="header">多个请求头</param>
-        public HttpCore header(object header)
+        /// <param name="data">多个参数</param>
+        public HttpCore header(object data)
         {
-            PropertyInfo[] properties = header.GetType().GetProperties();
-            foreach (var item in properties)
+            var list = data.GetType().GetProperties();
+            var vals = new List<Val>(list.Length);
+            foreach (var it in list)
             {
-                string key = GetTFName(item.Name).TrimStart('-');
-                string val = item.GetValue(header, null).ToString();
-                Config.setVals(ref option.header, key, val);
+                string key = GetTFName(it.Name).TrimStart('-');
+                if (key != "_" && key.EndsWith("_")) key = key.TrimEnd('_');
+                var valO = it.GetValue(data, null);
+                if (valO != null) vals.Add(new Val(key, valO.ToString()));
             }
+            if (vals.Count > 0) return header(vals);
             return this;
         }
 
@@ -319,16 +292,17 @@ namespace HttpLib
         /// <summary>
         /// 代理
         /// </summary>
-        /// <param name="address">代理服务器的 URI</param>
+        /// <param name="address">服务器URI</param>
         public HttpCore proxy(string address)
         {
             option.proxy = new WebProxy(address);
             return this;
         }
+
         /// <summary>
         /// 代理
         /// </summary>
-        /// <param name="address">代理服务器的 URI</param>
+        /// <param name="address">服务器URI</param>
         public HttpCore proxy(Uri address)
         {
             option.proxy = new WebProxy(address);
@@ -338,27 +312,25 @@ namespace HttpLib
         /// <summary>
         /// 代理
         /// </summary>
-        /// <param name="host">代理主机的名称</param>
-        /// <param name="port">要使用的 Host 上的端口号</param>
+        /// <param name="host">主机名称</param>
+        /// <param name="port">端口</param>
         public HttpCore proxy(string host, int port)
         {
             option.proxy = new WebProxy(host, port);
             return this;
         }
+
         /// <summary>
         /// 代理
         /// </summary>
-        /// <param name="host">代理主机的名称</param>
-        /// <param name="port">要使用的 Host 上的端口号</param>
+        /// <param name="host">主机名称</param>
+        /// <param name="port">端口</param>
         /// <param name="username">用户名</param>
         /// <param name="password">密码</param>
-        public HttpCore proxy(string host, int port, string username, string password)
+        public HttpCore proxy(string host, int port, string? username, string? password)
         {
             option.proxy = new WebProxy(host, port);
-            if (!string.IsNullOrEmpty(username))
-            {
-                option.proxy.Credentials = new NetworkCredential(username, password);
-            }
+            if (!string.IsNullOrEmpty(username)) option.proxy.Credentials = new NetworkCredential(username, password);
             return this;
         }
 
@@ -366,11 +338,20 @@ namespace HttpLib
 
         #region 编码
 
+        /// <summary>
+        /// 编码
+        /// </summary>
+        /// <param name="encoding">编码</param>
         public HttpCore encoding(string encoding)
         {
             option.encoding = Encoding.GetEncoding(encoding);
             return this;
         }
+
+        /// <summary>
+        /// 编码
+        /// </summary>
+        /// <param name="encoding">编码</param>
         public HttpCore encoding(Encoding encoding)
         {
             option.encoding = encoding;
@@ -378,12 +359,11 @@ namespace HttpLib
         }
 
         /// <summary>
-        /// 设置自动编码
+        /// 自动编码（识别html编码格式）
         /// </summary>
-        /// <param name="val">true启用自动识别html编码格式</param>
-        public HttpCore autoencode(bool val)
+        public HttpCore autoencode(bool auto = true)
         {
-            option.autoencode = val;
+            option.autoencode = auto;
             return this;
         }
 
@@ -392,10 +372,9 @@ namespace HttpLib
         #region 重定向
 
         /// <summary>
-        /// 设置请求重定向
+        /// 重定向
         /// </summary>
-        /// <param name="val">true启用重定向，false禁用重定向</param>
-        public HttpCore redirect(bool val)
+        public HttpCore redirect(bool val = true)
         {
             option.redirect = val;
             return this;
@@ -406,7 +385,7 @@ namespace HttpLib
         #region 超时
 
         /// <summary>
-        /// 设置请求超时时长
+        /// 超时
         /// </summary>
         /// <param name="time">毫秒</param>
         public HttpCore timeout(int time)
@@ -482,7 +461,7 @@ namespace HttpLib
 
                     if (option.data != null && option.data.Count > 0)
                     {
-                        foreach (var item in option.data)
+                        foreach (var it in option.data)
                         {
                             if (countB == 0)
                             {
@@ -494,7 +473,7 @@ namespace HttpLib
                             }
                             countB++;
 
-                            string separator = string.Format("Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}", item.Key, Uri.EscapeDataString(item.Value));
+                            string separator = string.Format("Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}", it.Key, Uri.EscapeDataString(it.Value));
 
                             writeDATA.Add(encoding.GetBytes(separator));
                         }
@@ -535,9 +514,9 @@ namespace HttpLib
                         using (var reqStream = req.GetRequestStream())
                         {
                             int fileIndex = 0;
-                            foreach (byte[] item in writeDATA)
+                            foreach (byte[] it in writeDATA)
                             {
-                                if (item == null)
+                                if (it == null)
                                 {
                                     Files file = option.file[fileIndex];
                                     fileIndex++;
@@ -554,7 +533,7 @@ namespace HttpLib
                                 }
                                 else
                                 {
-                                    reqStream.Write(item, 0, item.Length);
+                                    reqStream.Write(it, 0, it.Length);
                                 }
                             }
                         }
@@ -621,11 +600,11 @@ namespace HttpLib
     public enum HttpMethod
     {
         Get,
-        Head,
         Post,
         Put,
-        Patch,
         Delete,
+        Head,
+        Patch,
         Options
     }
 }
