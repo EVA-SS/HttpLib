@@ -38,7 +38,7 @@ namespace HttpLib
         /// </summary>
         /// <param name="key">键</param>
         /// <param name="val">值</param>
-        public static void header(string key, string val)
+        public static void header(string key, string? val)
         {
             if (headers == null) headers = new List<Val> { new Val(key, val) };
             else headers.Add(new Val(key, val));

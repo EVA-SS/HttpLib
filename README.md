@@ -2,16 +2,15 @@
 
 如果你喜欢 HttpLib 项目，请为本项点亮一颗星 ⭐！
 
-<a href="https://www.nuget.org/packages/Tom.HttpLib/" target="_blank"> 
-    <img src="https://img.shields.io/nuget/vpre/tom.httpLib?style=flat-square&logo=nuget&label=HttpLib"> 
-							  <img src="https://img.shields.io/nuget/dt/Tom.HttpLib?style=flat-square">
-							  </a>
+
+[![NuGet](https://img.shields.io/nuget/v/Tom.HttpLib.svg?style=for-the-badge&label=AntdUI&logo=nuget)](https://www.nuget.org/packages/Tom.HttpLib)
+[![Download](https://img.shields.io/nuget/dt/Tom.HttpLib?style=for-the-badge)](https://www.nuget.org/packages/Tom.HttpLib)
 
 ****
 
 |作者|Tom|
-|---|---
-|QQ|17379620
+|:--:|:--:|
+|QQ|17379620|
 
 ****
 ## 目录
@@ -33,6 +32,7 @@
         * [同步获取](#同步获取)
 * [实例](#实例)
 * [实例下载文件](#实例下载文件)
+* [实例流式传输](#实例流式传输)
 * [实例获取域名IP](#实例获取域名IP)
 * [实例全局错误捕获](#实例全局错误捕获)
 * [ResultResponse介绍](#ResultResponse介绍)
@@ -173,10 +173,16 @@ if (savapath != null) Console.WriteLine("下载成功保存至:" + savapath);
 else Console.WriteLine("下载失败");
 ```
 
-# 实例获取域名IP
+# 实例流式传输
 ``` csharp
-Http.Get("https://www.baidu.com").IP
+Http.Get("https://test.chatgpt.com/local_doc_chat").request(msg =>
+{
+    if (msg == null) return;
+    if (msg.StartsWith("data: ")) msg = msg.Substring(5).Trim();
+    System.Diagnostics.Debug.WriteLine(msg);
+});
 ```
+
 # 实例获取域名IP
 ``` csharp
 Http.Get("https://www.baidu.com").IP

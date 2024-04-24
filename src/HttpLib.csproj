@@ -18,7 +18,6 @@
 		<RepositoryUrl>https://github.com/Haku-Men/HttpLib</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Http;HttpLib;HttpHelper;HttpClient;HttpDown;M3U8;DownLoad</PackageTags>
-		<PackageReleaseNotes>新增流式请求GPT这种</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/Haku-Men/HttpLib</PackageProjectUrl>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>

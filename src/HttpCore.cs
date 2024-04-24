@@ -50,7 +50,7 @@ namespace HttpLib
         /// </summary>
         /// <param name="key">键</param>
         /// <param name="val">值</param>
-        public HttpCore query(string key, string val)
+        public HttpCore query(string key, string? val)
         {
             if (option.query == null) option.query = new List<Val> { new Val(key, val) };
             else option.query.Add(new Val(key, val));
@@ -121,7 +121,7 @@ namespace HttpLib
         /// </summary>
         /// <param name="key">键</param>
         /// <param name="val">值</param>
-        public HttpCore data(string key, string val)
+        public HttpCore data(string key, string? val)
         {
             if (option.data == null) option.data = new List<Val> { new Val(key, val) };
             else option.data.Add(new Val(key, val));
@@ -243,7 +243,7 @@ namespace HttpLib
         /// </summary>
         /// <param name="key">键</param>
         /// <param name="val">值</param>
-        public HttpCore header(string key, string val)
+        public HttpCore header(string key, string? val)
         {
             if (option.header == null) option.header = new List<Val> { new Val(key, val) };
             else option.header.Add(new Val(key, val));
