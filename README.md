@@ -3,7 +3,7 @@
 如果你喜欢 HttpLib 项目，请为本项点亮一颗星 ⭐！
 
 
-[![NuGet](https://img.shields.io/nuget/v/Tom.HttpLib.svg?style=for-the-badge&label=AntdUI&logo=nuget)](https://www.nuget.org/packages/Tom.HttpLib)
+[![NuGet](https://img.shields.io/nuget/v/Tom.HttpLib.svg?style=for-the-badge&label=Tom.HttpLib&logo=nuget)](https://www.nuget.org/packages/Tom.HttpLib)
 [![Download](https://img.shields.io/nuget/dt/Tom.HttpLib?style=for-the-badge)](https://www.nuget.org/packages/Tom.HttpLib)
 
 ****
