@@ -35,7 +35,7 @@ namespace HttpLib
         /// <param name="name">参数名称</param>
         /// <param name="fileName">文件名称</param>
         /// <param name="contentType">文件类型</param>
-        /// <param name="stream">字节流</param>
+        /// <param name="data">字节流</param>
         public Files(string name, string fileName, string contentType, byte[] data)
         {
             Name = name;
@@ -44,6 +44,15 @@ namespace HttpLib
             Size = data.Length;
             Stream = new MemoryStream(data);
         }
+
+        /// <summary>
+        /// 添加文件
+        /// </summary>
+        /// <param name="fileName">文件名称</param>
+        /// <param name="contentType">文件类型</param>
+        /// <param name="data">字节流</param>
+        public Files(string fileName, string contentType, byte[] data) : this("file", fileName, contentType, data)
+        { }
 
         /// <summary>
         /// 添加文件

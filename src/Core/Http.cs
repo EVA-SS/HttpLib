@@ -94,7 +94,6 @@ namespace HttpLib
             return Core(url, HttpMethod.Delete);
         }
 
-
         public static HttpCore Core(this string url, HttpMethod method)
         {
             return new HttpCore(url, method);
@@ -106,39 +105,108 @@ namespace HttpLib
     }
 
     /// <summary>
-    /// 请求响应
+    /// 响应结果
     /// </summary>
-    public class WebResult
+    public class ResultResponse
     {
+        public ResultResponse(Uri uri)
+        {
+            Uri = uri;
+            OriginalSize = Size = -1;
+            Header = Cookie = new Dictionary<string, string>(0);
+        }
+        public ResultResponse(Uri uri, Exception ex) : this(uri) { Exception = ex; }
+        public ResultResponse(HttpWebResponse data, Exception ex) : this(data) { Exception = ex; }
+        public ResultResponse(HttpWebResponse data)
+        {
+            OriginalSize = Size = -1;
+            StatusCode = (int)data.StatusCode;
+            Type = data.ContentType;
+            ServerHeader = string.Join(" ", new string[] {
+                data.ResponseUri.Scheme.ToUpper(),
+                StatusCode.ToString(),
+                data.StatusCode.ToString(),
+                data.Server,
+                "Ver:" + data.ProtocolVersion.ToString()
+            });
+            Uri = data.ResponseUri;
+            if (data.Headers.Count > 0 || data.Cookies.Count > 0)
+            {
+                if (data.Headers.Count > 0)
+                {
+                    var header = new Dictionary<string, List<string>>(data.Headers.AllKeys.Length);
+                    foreach (string it in data.Headers.AllKeys)
+                    {
+                        var val = data.Headers[it];
+                        if (val == null) continue;
+                        if (header.ContainsKey(it)) header[it].Add(val);
+                        else header.Add(it, new List<string> { val });
+                    }
+                    Header = new Dictionary<string, string>(header.Count);
+                    foreach (var it in header) Header.Add(it.Key, string.Join("; ", it.Value));
+                }
+                else Header = new Dictionary<string, string>(0);
+
+                if (data.Cookies.Count > 0)
+                {
+                    var cookie = new Dictionary<string, List<string>>(data.Cookies.Count);
+                    foreach (Cookie it in data.Cookies)
+                    {
+                        if (cookie.ContainsKey(it.Name)) cookie[it.Name].Add(it.Value);
+                        else cookie.Add(it.Name, new List<string> { it.Value });
+                    }
+                    Cookie = new Dictionary<string, string>(cookie.Count);
+                    foreach (var it in cookie) Cookie.Add(it.Key, string.Join(";", it.Value));
+                }
+                else Cookie = new Dictionary<string, string>(0);
+            }
+            else Header = Cookie = new Dictionary<string, string>(0);
+        }
+
+        /// <summary>
+        /// 指示HTTP响应是否成功 range 200-299
+        /// </summary>
+        public bool IsSuccessStatusCode { get => StatusCode >= 200 && StatusCode <= 299; }
+
         /// <summary>
         /// 状态代码
         /// </summary>
-        public int StatusCode { set; get; }
+        public int StatusCode { get; set; }
+
         /// <summary>
         /// 服务头
         /// </summary>
-        public string ServerHeader { set; get; }
-        public string DNS { set; get; }
-        public string AbsoluteUri { set; get; }
+        public string? ServerHeader { get; set; }
+
+        /// <summary>
+        /// 地址
+        /// </summary>
+        public Uri Uri { get; set; }
+
         /// <summary>
         /// 响应指示类型
         /// </summary>
-        public string Type { set; get; }
+        public string? Type { get; set; }
 
         /// <summary>
         /// 响应头
         /// </summary>
-        public Dictionary<string, string> Header { set; get; }
-        public Dictionary<string, string> Cookie { set; get; }
+        public Dictionary<string, string> Header { get; set; }
+        public Dictionary<string, string> Cookie { get; set; }
 
         /// <summary>
         /// 流原始大小
         /// </summary>
-        public long OriginalSize { set; get; }
+        public long OriginalSize { get; set; }
 
         /// <summary>
         /// 流大小
         /// </summary>
-        public long Size { set; get; }
+        public long Size { get; set; }
+
+        /// <summary>
+        /// 错误异常
+        /// </summary>
+        public Exception? Exception { get; set; }
     }
 }

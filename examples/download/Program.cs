@@ -2,8 +2,8 @@
 
 using HttpLib;
 
-Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.6.2/QQ9.6.2.28756.exe")
-       .redirect(true)
+var savapath = Http.Get("https://dldir1.qq.com/qqfile/qq/QQNT/Windows/QQ_9.9.9_240422_x64_01.exe")
+       .redirect()
        .responseProgres((bytesSent, totalBytes) =>
        {
            Console.SetCursorPosition(0, 0);
@@ -16,17 +16,11 @@ Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.6.2/QQ9.6.2.28756.exe")
            {
                Console.Write("{0} 下载            ", CountSize(bytesSent));
            }
-       }).download(@"C:\Users\admin\Desktop", "qq.exe").ContinueWith(savapath =>
-       {
-           if (savapath.Result != null)
-           {
-               Console.WriteLine("下载成功保存至:" + savapath.Result);
-           }
-           else
-           {
-               Console.WriteLine("下载失败");
-           }
-       }).Wait();
+       }).download(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "qq.exe");
+
+if (savapath != null) Console.WriteLine("下载成功保存至:" + savapath);
+else Console.WriteLine("下载失败");
+
 
 Console.ReadLine();
 
@@ -37,22 +31,22 @@ static string CountSize(double Size)
     if (FactSize >= 1024)
     {
         houzui = "K";
-        FactSize = (FactSize / 1024.00);
+        FactSize /= 1024.00;
     }
     if (FactSize >= 1024)
     {
         houzui = "M";
-        FactSize = (FactSize / 1024.00);
+        FactSize /= 1024.00;
     }
     if (FactSize >= 1024)
     {
         houzui = "G";
-        FactSize = (FactSize / 1024.00);
+        FactSize /= 1024.00;
     }
     if (FactSize >= 1024)
     {
         houzui = "T";
-        FactSize = (FactSize / 1024.00);
+        FactSize /= 1024.00;
     }
     return string.Format("{0} {1}", Math.Round(FactSize, 2), houzui);
 }

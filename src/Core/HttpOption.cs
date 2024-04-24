@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Text;
 
@@ -129,27 +128,14 @@ namespace HttpLib
             }
         }
 
-        public string FileName(WebResult _web)
+        public string FileName(ResultResponse _web)
         {
             if (_web.Header.ContainsKey("Content-Disposition"))
             {
                 string val = _web.Header["Content-Disposition"];
-                if (!string.IsNullOrEmpty(val))
-                {
-                    var filename = val.Substring(val.ToUpper().IndexOf("filename=") + 9);
-                    if (filename.Contains(";"))
-                    {
-                        filename = filename.Substring(0, filename.IndexOf(";"));
-                        if (filename.EndsWith("\""))
-                        {
-                            filename = filename.Substring(1, filename.Length - 2);
-                        }
-                    }
-                    return filename;
-                }
+                if (!string.IsNullOrEmpty(val)) return val.FileNameDisposition();
             }
-            if (uri.Query.Length > 0) return Path.GetFileName(uri.AbsoluteUri.Substring(0, uri.AbsoluteUri.Length - uri.Query.Length));
-            return Path.GetFileName(uri.AbsoluteUri);
+            return uri.FileName();
         }
 
         public override string ToString()

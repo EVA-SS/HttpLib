@@ -1,250 +1,408 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net;
+using System.Text;
 
 namespace HttpLib
 {
     public partial class HttpCore
     {
-        #region 回调
-
-        #region 上传进度的回调
-
-        Action<long, long> _requestProgres = null;
-        Action<long> _requestProgresMax = null;
-        /// <summary>
-        /// 上传进度的回调函数
-        /// </summary>
-        public HttpCore requestProgres(Action<long, long> action)
+        public HttpOption option;
+        public HttpCore(string uri, HttpMethod method)
         {
-            _requestProgres = action;
-            return this;
+            option = new HttpOption(uri, method);
         }
-        public HttpCore requestProgresMax(Action<long> action)
+        public HttpCore(Uri uri, HttpMethod method)
         {
-            _requestProgresMax = action;
-            return this;
+            option = new HttpOption(uri, method);
+        }
+        public HttpCore(HttpOption _option)
+        {
+            option = _option;
         }
 
-        #endregion
+        #region 请求参(GET)
 
-        #region 下载进度的回调
-
-        Action<long, long> _responseProgres = null;
-        Action<long> _responseProgresMax = null;
         /// <summary>
-        /// 下载进度的回调函数
+        /// 请求参(GET)
         /// </summary>
-        public HttpCore responseProgres(Action<long, long> action)
+        /// <param name="vals">多个参数</param>
+        public HttpCore query(params Val[] vals)
         {
-            _responseProgres = action;
+            option.query ??= new List<Val>(vals.Length);
+            option.query.AddRange(vals);
             return this;
         }
 
         /// <summary>
-        /// 下载进度的回调函数
+        /// 请求参(GET)
         /// </summary>
-        public HttpCore responseProgresMax(Action<long> action)
+        /// <param name="vals">多个参数</param>
+        public HttpCore query(IList<Val> vals)
         {
-            _responseProgresMax = action;
-            return this;
-        }
-
-        #endregion
-
-        #endregion
-
-        #region 请求
-
-        public delegate bool ActionBool<in T>(T obj);
-        public delegate bool ActionBool2<in T1, in T2>(T1 arg1, T2 arg2);
-
-        ActionBool2<HttpWebResponse, WebResult> _requestBefore = null;
-        ActionBool<HttpWebResponse> _requestBefore2 = null;
-        ActionBool<WebResult> _requestBefore3 = null;
-        /// <summary>
-        /// 请求之前处理
-        /// </summary>
-        /// <param name="action">请求之前处理回调</param>
-        /// <returns>返回true继续 反之取消请求</returns>
-        public HttpCore before(ActionBool2<HttpWebResponse, WebResult> action)
-        {
-            _requestBefore = action;
-            return this;
-        }
-        /// <summary>
-        /// 请求之前处理
-        /// </summary>
-        /// <param name="action">请求之前处理回调</param>
-        /// <returns>返回true继续 反之取消请求</returns>
-        public HttpCore before(ActionBool<HttpWebResponse> action)
-        {
-            _requestBefore2 = action;
+            option.query ??= new List<Val>(vals.Count);
+            option.query.AddRange(vals);
             return this;
         }
 
         /// <summary>
-        /// 请求之前处理
+        /// 请求参(GET)
         /// </summary>
-        /// <param name="action">请求之前处理回调</param>
-        /// <returns>返回true继续 反之取消请求</returns>
-        public HttpCore before(ActionBool<WebResult> action)
+        /// <param name="key">键</param>
+        /// <param name="val">值</param>
+        public HttpCore query(string key, string val)
         {
-            _requestBefore3 = action;
+            if (option.query == null) option.query = new List<Val> { new Val(key, val) };
+            else option.query.Add(new Val(key, val));
             return this;
         }
-
-        Action<Exception> _fail = null;
-        /// <summary>
-        /// 接口调用失败的回调函数
-        /// </summary>
-        public HttpCore fail(Action<Exception> action)
-        {
-            _fail = action;
-            return this;
-        }
-
-
-        Action<int, Exception> _fail2 = null;
 
         /// <summary>
-        /// 接口调用失败的回调函数
+        /// 请求参(GET)
         /// </summary>
-        /// <param name="action">Http状态代码+错误</param>
-        /// <returns></returns>
-        public HttpCore fail(Action<int, Exception> action)
+        /// <param name="vals">多个参数</param>
+        public HttpCore query(IDictionary<string, string> vals)
         {
-            _fail2 = action;
-            return this;
-        }
-
-        Action<WebResult, Exception> _fail3 = null;
-
-        /// <summary>
-        /// 接口调用失败的回调函数
-        /// </summary>
-        /// <param name="action">错误Http响应头+错误</param>
-        /// <returns></returns>
-        public HttpCore fail(Action<WebResult, Exception> action)
-        {
-            _fail3 = action;
-            return this;
-        }
-
-        #region 接口调用成功的回调函数
-
-        int resultMode = -1;
-        Action<WebResult> _success0 = null;
-        /// <summary>
-        /// 请求成功回调
-        /// </summary>
-        /// <param name="action">WebResult</param>
-        /// <returns>不下载内容</returns>
-        public HttpCore success(Action<WebResult> action)
-        {
-            resultMode = 0;
-            _success0 = action;
-            requestAsync();
-            return this;
-        }
-
-        Action<WebResult, string> _success1 = null;
-        /// <summary>
-        /// 请求成功回调
-        /// </summary>
-        /// <param name="action">WebResult</param>
-        /// <returns>返回字符串</returns>
-        public HttpCore success(Action<WebResult, string> action)
-        {
-            resultMode = 1;
-            _success1 = action;
-            return this;
-        }
-
-        Action<WebResult, byte[]> _success2 = null;
-        /// <summary>
-        /// 请求成功回调
-        /// </summary>
-        /// <param name="action">WebResult</param>
-        /// <returns>返回字节</returns>
-        public HttpCore success(Action<WebResult, byte[]> action)
-        {
-            resultMode = 2;
-            _success2 = action;
-            requestAsync();
-            return this;
-        }
-
-        #endregion
-
-        #endregion
-
-        #region 终止
-
-        public void abort()
-        {
-            if (req != null)
+            option.query ??= new List<Val>(vals.Count);
+            foreach (var it in vals)
             {
-                try
-                {
-                    req.Abort();
-                    req = null;
-                }
-                catch
-                { }
+                option.query.Add(new Val(it.Key, it.Value));
             }
-            if (response != null)
-            {
-                try
-                {
-                    response.Close();
+            return this;
+        }
 
-#if !NET40
-                    response.Dispose();
-#endif
-                    response = null;
-                }
-                catch
-                { }
+        /// <summary>
+        /// 请求参(GET)
+        /// </summary>
+        /// <param name="data">多个参数</param>
+        public HttpCore query(object data)
+        {
+            var list = data.GetType().GetProperties();
+            var vals = new List<Val>(list.Length);
+            foreach (var it in list)
+            {
+                string key = it.Name;
+                if (key != "_" && key.EndsWith("_")) key = key.TrimEnd('_');
+                var valO = it.GetValue(data, null);
+                if (valO != null) vals.Add(new Val(key, valO.ToString()));
             }
+            if (vals.Count > 0) return query(vals);
+            return this;
+        }
+
+        #endregion
+
+        #region 请求参
+
+        /// <summary>
+        /// 请求参
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore data(params Val[] vals)
+        {
+            option.data ??= new List<Val>(vals.Length);
+            option.data.AddRange(vals);
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore data(IList<Val> vals)
+        {
+            option.data ??= new List<Val>(vals.Count);
+            option.data.AddRange(vals);
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参
+        /// </summary>
+        /// <param name="key">键</param>
+        /// <param name="val">值</param>
+        public HttpCore data(string key, string val)
+        {
+            if (option.data == null) option.data = new List<Val> { new Val(key, val) };
+            else option.data.Add(new Val(key, val));
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore data(IDictionary<string, string> vals)
+        {
+            option.data ??= new List<Val>(vals.Count);
+            foreach (var it in vals)
+            {
+                option.data.Add(new Val(it.Key, it.Value));
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参
+        /// </summary>
+        /// <param name="_data">多个参数</param>
+        public HttpCore data(object _data)
+        {
+            var list = _data.GetType().GetProperties();
+            var vals = new List<Val>(list.Length);
+            foreach (var it in list)
+            {
+                string key = it.Name;
+                if (key != "_" && key.EndsWith("_")) key = key.TrimEnd('_');
+                var valO = it.GetValue(_data, null);
+                if (valO != null) vals.Add(new Val(key, valO.ToString()));
+            }
+            if (vals.Count > 0) return data(vals);
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参（数组）
+        /// </summary>
+        /// <param name="key">键</param>
+        /// <param name="val">值</param>
+        public HttpCore data(string key, IList<string> val)
+        {
+            if (option.method == HttpMethod.Get) throw new Exception("Get不支持数组");
+            option.data ??= new List<Val>(val.Count);
+            foreach (var it in val) option.data.Add(new Val(key + "[]", it));
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参
+        /// </summary>
+        /// <param name="val">text/plain</param>
+        /// <param name="contentType">类型</param>
+        public HttpCore datastr(string val, string contentType = "text/plain")
+        {
+            option.datastr = val;
+            header("Content-Type", contentType);
+            return this;
+        }
+
+        #region 文件
+
+        /// <summary>
+        /// 请求参（文件）
+        /// </summary>
+        /// <param name="files">多个文件</param>
+        public HttpCore data(params Files[] files)
+        {
+            option.file ??= new List<Files>(files.Length);
+            option.file.AddRange(files);
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参（文件）
+        /// </summary>
+        /// <param name="files">多个文件</param>
+        public HttpCore data(IList<Files> files)
+        {
+            option.file ??= new List<Files>(files.Count);
+            option.file.AddRange(files);
+            return this;
+        }
+
+        #endregion
+
+        #endregion
+
+        #region 请求头
+
+        /// <summary>
+        /// 请求头
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore header(params Val[] vals)
+        {
+            option.header ??= new List<Val>(vals.Length);
+            option.header.AddRange(vals);
+            return this;
+        }
+
+        /// <summary>
+        /// 请求头
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore header(IList<Val> vals)
+        {
+            option.header ??= new List<Val>(vals.Count);
+            option.header.AddRange(vals);
+            return this;
+        }
+
+        /// <summary>
+        /// 请求头
+        /// </summary>
+        /// <param name="key">键</param>
+        /// <param name="val">值</param>
+        public HttpCore header(string key, string val)
+        {
+            if (option.header == null) option.header = new List<Val> { new Val(key, val) };
+            else option.header.Add(new Val(key, val));
+            return this;
+        }
+
+        /// <summary>
+        /// 请求头
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public HttpCore header(IDictionary<string, string> vals)
+        {
+            option.header ??= new List<Val>(vals.Count);
+            foreach (var it in vals)
+            {
+                option.header.Add(new Val(it.Key, it.Value));
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// 请求头
+        /// </summary>
+        /// <param name="data">多个参数</param>
+        public HttpCore header(object data)
+        {
+            var list = data.GetType().GetProperties();
+            var vals = new List<Val>(list.Length);
+            foreach (var it in list)
+            {
+                string key = GetTFName(it.Name).TrimStart('-');
+                if (key != "_" && key.EndsWith("_")) key = key.TrimEnd('_');
+                var valO = it.GetValue(data, null);
+                if (valO != null) vals.Add(new Val(key, valO.ToString()));
+            }
+            if (vals.Count > 0) return header(vals);
+            return this;
+        }
+
+        #endregion
+
+        #region 代理
+
+        /// <summary>
+        /// 代理
+        /// </summary>
+        /// <param name="address">服务器URI</param>
+        public HttpCore proxy(string address)
+        {
+            option.proxy = new WebProxy(address);
+            return this;
+        }
+
+        /// <summary>
+        /// 代理
+        /// </summary>
+        /// <param name="address">服务器URI</param>
+        public HttpCore proxy(Uri address)
+        {
+            option.proxy = new WebProxy(address);
+            return this;
+        }
+
+        /// <summary>
+        /// 代理
+        /// </summary>
+        /// <param name="host">主机名称</param>
+        /// <param name="port">端口</param>
+        public HttpCore proxy(string host, int port)
+        {
+            option.proxy = new WebProxy(host, port);
+            return this;
+        }
+
+        /// <summary>
+        /// 代理
+        /// </summary>
+        /// <param name="host">主机名称</param>
+        /// <param name="port">端口</param>
+        /// <param name="username">用户名</param>
+        /// <param name="password">密码</param>
+        public HttpCore proxy(string host, int port, string? username, string? password)
+        {
+            option.proxy = new WebProxy(host, port);
+            if (!string.IsNullOrEmpty(username)) option.proxy.Credentials = new NetworkCredential(username, password);
+            return this;
+        }
+
+        #endregion
+
+        #region 编码
+
+        /// <summary>
+        /// 编码
+        /// </summary>
+        /// <param name="encoding">编码</param>
+        public HttpCore encoding(string encoding)
+        {
+            option.encoding = Encoding.GetEncoding(encoding);
+            return this;
+        }
+
+        /// <summary>
+        /// 编码
+        /// </summary>
+        /// <param name="encoding">编码</param>
+        public HttpCore encoding(Encoding encoding)
+        {
+            option.encoding = encoding;
+            return this;
+        }
+
+        /// <summary>
+        /// 自动编码（识别html编码格式）
+        /// </summary>
+        public HttpCore autoencode(bool auto = true)
+        {
+            option.autoencode = auto;
+            return this;
+        }
+
+        #endregion
+
+        #region 重定向
+
+        /// <summary>
+        /// 重定向
+        /// </summary>
+        public HttpCore redirect(bool val = true)
+        {
+            option.redirect = val;
+            return this;
+        }
+
+        #endregion
+
+        #region 超时
+
+        /// <summary>
+        /// 超时
+        /// </summary>
+        /// <param name="time">毫秒</param>
+        public HttpCore timeout(int time)
+        {
+            option.timeout = time;
+            return this;
         }
 
         #endregion
     }
 
-    public static class HttpCoreLib
+    public enum HttpMethod
     {
-        public static void CreateDirectory(this string dir)
-        {
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-        }
-
-        public static string ToString(this Dictionary<string, string> vals)
-        {
-            return ToString(vals, Environment.NewLine);
-        }
-        public static string ToString(this Dictionary<string, string> vals, string sp)
-        {
-            var strs = new List<string>();
-            foreach (var item in vals)
-            {
-                strs.Add(item.Key + "=" + item.Value);
-            }
-            return string.Join(sp, strs);
-        }
-        public static string ToString(this List<Val> vals)
-        {
-            return ToString(vals, Environment.NewLine);
-        }
-        public static string ToString(this List<Val> vals, string sp)
-        {
-            var strs = new List<string>();
-            foreach (var item in vals)
-            {
-                strs.Add(item.ToString());
-            }
-            return string.Join(sp, strs);
-        }
+        Get,
+        Post,
+        Put,
+        Delete,
+        Head,
+        Patch,
+        Options
     }
 }

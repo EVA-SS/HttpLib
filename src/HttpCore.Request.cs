@@ -2,163 +2,99 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace HttpLib
 {
     partial class HttpCore
     {
         /// <summary>
-        /// 异步请求
+        /// 请求（不下载流）
         /// </summary>
-        public Task requestAsync()
-        {
-#if NET40
-            return Task.Factory.StartNew(requestAsyncCore);
-#else
-            return Task.Run(requestAsyncCore);
-#endif
-        }
-
-        void requestAsyncCore()
-        {
-            var val = Go(resultMode);
-            if (val != null && val.web != null)
-            {
-                switch (resultMode)
-                {
-                    case 0:
-                        if (_success0 != null)
-                        {
-                            _success0(val.web);
-                        }
-                        break;
-                    case 1:
-                        if (_success1 != null)
-                        {
-                            _success1(val.web, val.str);
-                        }
-                        break;
-                    case 2:
-                        if (_success2 != null)
-                        {
-                            _success2(val.web, val.data);
-                        }
-                        break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 同步请求
-        /// </summary>
-        /// <returns>不下载流</returns>
-        public WebResult? requestNone()
+        public ResultResponse requestNone()
         {
             var val = Go(0);
-            if (val != null) return val.web;
-            return null;
+            return val.web;
         }
 
-#if NET40
         /// <summary>
         /// 下载文件
         /// </summary>
         /// <param name="savePath">保存目录</param>
         /// <param name="saveName">保存文件名称（为空自动获取）</param>
         /// <returns>返回保存文件路径，为空下载失败</returns>
-        public Task<string?> download(string savePath, string? saveName = null)
-        {
-            return Task.Factory.StartNew(() =>
-            {
-                var val = Go(3, savePath, saveName);
-                if (val != null) return val.str;
-                return null;
-            });
-        }
-#else
-        /// <summary>
-        /// 下载文件
-        /// </summary>
-        /// <param name="savePath">保存目录</param>
-        /// <param name="saveName">保存文件名称（为空自动获取）</param>
-        /// <returns>返回保存文件路径，为空下载失败</returns>
-        public async Task<string?> download(string savePath, string? saveName = null)
+        public string? download(string savePath, string? saveName = null)
         {
             var val = Go(3, savePath, saveName);
-            if (val != null) return val.str;
-            return null;
+            return val.str;
         }
-#endif
 
         /// <summary>
-        /// 同步请求
+        /// 请求（返回字节）
         /// </summary>
-        /// <returns>字节类型</returns>
+        /// <param name="result">响应结果</param>
+        public byte[]? requestData(out ResultResponse result)
+        {
+            var val = Go(2);
+            result = val.web;
+            return val.data;
+        }
+
+        /// <summary>
+        /// 请求（返回字节）
+        /// </summary>
         public byte[]? requestData()
         {
             var val = Go(2);
-            if (val != null) return val.data;
-            return null;
+            return val.data;
         }
 
         /// <summary>
-        /// 同步请求
+        /// 请求（返回字符串）
         /// </summary>
-        /// <returns>字节类型</returns>
-        public byte[]? requestData(out WebResult? result)
-        {
-            var val = Go(2);
-            if (val != null)
-            {
-                result = val.web;
-                return val.data;
-            }
-            result = null;
-            return null;
-        }
-
-        /// <summary>
-        /// 同步请求
-        /// </summary>
-        /// <returns>字符串类型</returns>
         public string? request()
         {
             action_eventstream = null;
             var val = Go(1);
-            if (val != null) return val.str;
-            return null;
+            return val.str;
         }
 
         /// <summary>
-        /// 同步请求
+        /// 请求（返回字符串）
         /// </summary>
-        /// <returns>字符串类型</returns>
-        public string? request(out WebResult? result)
+        /// <param name="result">响应结果</param>
+        public string? request(out ResultResponse result)
         {
             action_eventstream = null;
             var val = Go(1);
-            if (val != null)
-            {
-                result = val.web;
-                return val.str;
-            }
-            result = null;
-            return null;
+            result = val.web;
+            return val.str;
         }
 
         Action<string?>? action_eventstream = null;
         /// <summary>
-        /// 流式请求
+        /// 流式请求（返回字符串）
         /// </summary>
-        /// <returns>字符串类型</returns>
-        public void request(Action<string?> eventstream)
+        public string? request(Action<string?> eventstream)
         {
             action_eventstream = eventstream;
-            Go(1);
+            var val = Go(1);
+            return val.str;
+        }
+
+        /// <summary>
+        /// 流式请求（返回字符串）
+        /// </summary>
+        /// <param name="result">响应结果</param>
+        public string? request(Action<string?> eventstream, out ResultResponse result)
+        {
+            action_eventstream = eventstream;
+            var val = Go(1);
+            result = val.web;
+            return val.str;
         }
 
         #region 对象
@@ -168,34 +104,30 @@ namespace HttpLib
 
         #endregion
 
-        TaskResult? Go(int resultMode, string? savePath = null, string? saveName = null)
+        TaskResult Go(int resultMode, string? savePath = null, string? saveName = null)
+        {
+            var r = GoCore(resultMode, savePath, saveName);
+            req = null;
+            response = null;
+            return r;
+        }
+        TaskResult GoCore(int resultMode, string? savePath = null, string? saveName = null)
         {
             try
             {
                 abort();
-                CreateRequest(ref req);
+                req = CreateRequest();
                 using (response = (HttpWebResponse)req.GetResponse())
                 {
                     var response_max = response.ContentLength;
                     Max = response_max;
-                    if (_responseProgresMax != null)
-                        _responseProgresMax(response_max);
-                    if (_requestBefore2 != null)
-                        if (!_requestBefore2(response)) return null;
+                    _responseProgresMax?.Invoke(response_max);
 
-                    var _web = GetWebResult(response);
-
-                    if (_requestBefore != null && !_requestBefore(response, _web)) return null;
-                    if (_requestBefore3 != null && !_requestBefore3(_web)) return null;
-
+                    var _web = new ResultResponse(response);
+                    if (action_before != null && !action_before(response, _web)) return new TaskResult(_web);
 
                     switch (resultMode)
                     {
-                        case 0:
-                            using (var stream = response.GetResponseStream())
-                            {
-                                return null;
-                            }
                         case 3:
                             using (var stream = response.GetResponseStream())
                             {
@@ -208,7 +140,7 @@ namespace HttpLib
                                 using (var stream = response.GetResponseStream())
                                 {
                                     var data = DownStream(response_max, _web, stream, out _);
-                                    if (data == null) return null;
+                                    if (data == null) return new TaskResult(_web);
                                     else
                                     {
                                         var encodings = option.encoding;
@@ -222,7 +154,7 @@ namespace HttpLib
                                 using (var reader = new StreamReader(response.GetResponseStream()))
                                 {
                                     while (!reader.EndOfStream) action_eventstream(reader.ReadLine());
-                                    return null;
+                                    return new TaskResult(_web);
                                 }
                             }
                         case 2:
@@ -230,51 +162,54 @@ namespace HttpLib
                             {
                                 return new TaskResult(_web, DownStream(response_max, _web, stream, out _));
                             }
-
+                        case 0:
+                        default:
+                            using (var stream = response.GetResponseStream())
+                            {
+                                return new TaskResult(_web);
+                            }
                     }
                 }
-                response = null;
             }
             catch (Exception err)
             {
                 if (err is WebException err_web && err_web.Response is HttpWebResponse response)
                 {
-                    Config.OnFail(this, GetWebResult(response), err);
-                    if (_fail3 != null) _fail3(GetWebResult(response), err);
-                    else if (_fail2 != null) _fail2((int)response.StatusCode, err);
-                    else if (_fail != null) _fail(err);
-                    return new TaskResult(GetWebResult(response));
+                    var web = new ResultResponse(response, err);
+                    Config.OnFail(this, web);
+                    action_fail?.Invoke(web);
+                    return new TaskResult(web);
                 }
                 else
                 {
-                    Config.OnFail(this, null, err);
-                    if (_fail3 != null) _fail3(null, err);
-                    else if (_fail2 != null) _fail2(-1, err);
-                    else if (_fail != null) _fail(err);
+                    var web = new ResultResponse(option.Url, err);
+                    Config.OnFail(this, web);
+                    action_fail?.Invoke(web);
+                    return new TaskResult(web);
                 }
             }
-            return null;
         }
+
         class TaskResult
         {
-            public TaskResult(WebResult _web)
+            public TaskResult(ResultResponse _web)
             {
                 type = 0;
                 web = _web;
             }
-            public TaskResult(WebResult _web, byte[]? _data)
+            public TaskResult(ResultResponse _web, byte[]? _data)
             {
                 type = 2;
                 web = _web;
                 data = _data;
             }
-            public TaskResult(WebResult _web, string? _str)
+            public TaskResult(ResultResponse _web, string? _str)
             {
                 type = 1;
                 web = _web;
                 str = _str;
             }
-            public WebResult web { get; set; }
+            public ResultResponse web { get; set; }
             public int type { get; set; }
             public string? str { get; set; }
             public byte[]? data { get; set; }
@@ -282,105 +217,64 @@ namespace HttpLib
 
         #region 请求头-帮助
 
-        private string GetTFName(string strItem, string replace = "-")
+        string GetTFName(string strItem, string replace = "-")
         {
             string strItemTarget = "";  //目标字符串
-            for (int j = 0; j < strItem.Length; j++)  //strItem是原始字符串
+            for (int i = 0; i < strItem.Length; i++)  //strItem是原始字符串
             {
-                string temp = strItem[j].ToString();
-                if (Regex.IsMatch(temp, "[A-Z]"))
-                {
-                    temp = replace + temp.ToLower();
-                }
+                string temp = strItem[i].ToString();
+                if (Regex.IsMatch(temp, "[A-Z]")) temp = replace + temp.ToLower();
                 strItemTarget += temp;
             }
             return strItemTarget;
         }
-        private void SetHeader(out bool isContentType, HttpWebRequest req, List<Val> headers, CookieContainer cookies)
+        void SetHeader(out bool isContentType, HttpWebRequest req, List<Val> headers, CookieContainer cookies)
         {
-            isContentType = false;
-            foreach (var item in headers)
+            isContentType = true;
+            foreach (var it in headers)
             {
-                string _Lower_Name = item.Key.ToLower();
-                switch (_Lower_Name)
+                if (it.Value != null)
                 {
-                    case "host":
-                        req.Host = item.Value;
-                        break;
-                    case "accept":
-                        req.Accept = item.Value;
-                        break;
-                    case "user-agent":
-                        req.UserAgent = item.Value;
-                        break;
-                    case "referer":
-                        req.Referer = item.Value;
-                        break;
-                    case "content-type":
-                        isContentType = true;
-                        req.ContentType = item.Value;
-                        break;
-                    case "cookie":
-                        #region 设置COOKIE
-                        string _cookie = item.Value;
-
-                        //var cookiePairs = _cookie.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
-                        //foreach (var cookiePair in cookiePairs)
-                        //{
-                        //    var index = cookiePair.IndexOf('=');
-
-                        //    Cookies.Container.Add(req.RequestUri, new Cookie(cookiePair.Substring(0, index), cookiePair.Substring(index + 1, cookiePair.Length - index - 1)) { Domain = uri.Host });
-                        //}
-                        if (_cookie.IndexOf(";") >= 0)
-                        {
-                            string[] arrCookie = _cookie.Split(';');
-                            //加载Cookie
-                            //cookie_container.SetCookies(new Uri(url), cookie);
-                            foreach (string sCookie in arrCookie)
+                    switch (it.Key.ToLower())
+                    {
+                        case "host":
+                            req.Host = it.Value;
+                            break;
+                        case "accept":
+                            req.Accept = it.Value;
+                            break;
+                        case "user-agent":
+                            req.UserAgent = it.Value;
+                            break;
+                        case "referer":
+                            req.Referer = it.Value;
+                            break;
+                        case "content-type":
+                            isContentType = false;
+                            req.ContentType = it.Value;
+                            break;
+                        case "cookie":
+                            if (it.Value != null)
                             {
-                                if (string.IsNullOrEmpty(sCookie))
+                                if (it.Value.IndexOf(";") >= 0)
                                 {
-                                    continue;
+                                    var Cookies = it.Value.Split(';');
+                                    foreach (string cook in Cookies)
+                                    {
+                                        if (string.IsNullOrEmpty(cook)) continue;
+                                        if (cook.IndexOf("expires") > 0) continue;
+                                        cookies.SetCookies(req.RequestUri, cook);
+                                    }
                                 }
-                                if (sCookie.IndexOf("expires") > 0)
-                                {
-                                    continue;
-                                }
-                                cookies.SetCookies(req.RequestUri, sCookie);
+                                else cookies.SetCookies(req.RequestUri, it.Value);
                             }
-                        }
-                        else
-                        {
-                            cookies.SetCookies(req.RequestUri, _cookie);
-                        }
-                        #endregion
-                        break;
-                    default:
-                        req.Headers.Add(item.Key, item.Value);
-                        break;
-
+                            break;
+                        default:
+                            req.Headers.Add(it.Key, it.Value);
+                            break;
+                    }
                 }
             }
-        }
-
-
-        #endregion
-
-        #region 请求流-帮助
-
-        private string RandomString(int length)
-        {
-            string allowedChars = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789";
-            char[] chars = new char[length];
-
-            Random rd = new Random();
-
-            for (int i = 0; i < length; i++)
-            {
-                chars[i] = allowedChars[rd.Next(0, allowedChars.Length)];
-            }
-
-            return new string(chars);
         }
 
         #endregion
@@ -390,58 +284,11 @@ namespace HttpLib
         /// <summary>
         /// 获取域名IP
         /// </summary>
-        public string IP
-        {
-            get
-            {
-                return option.IP;
-            }
-        }
+        public string? IP { get => option.IP; }
 
-        WebResult GetWebResult(HttpWebResponse response)
-        {
-            if (response == null) return null;
-            var _web = new WebResult
-            {
-                StatusCode = (int)response.StatusCode,
-                Type = response.ContentType,
-                ServerHeader = string.Format("{0} {1} {2} {3} Ver:{4}.{5}", response.ResponseUri.Scheme.ToUpper(), (int)response.StatusCode, response.StatusCode, response.Server, response.ProtocolVersion.Major, response.ProtocolVersion.Minor),
-                DNS = response.ResponseUri.DnsSafeHost,
-                AbsoluteUri = response.ResponseUri.AbsoluteUri,
-                Header = new Dictionary<string, string>()
-            };
-            var _header = new Dictionary<string, List<string>>();
-            var _cookie = new Dictionary<string, List<string>>();
-
-            #region 获取头信息
-
-            foreach (string str in response.Headers.AllKeys)
-            {
-                string val = response.Headers[str];
-                if (_header.ContainsKey(str)) _header[str].Add(val);
-                else _header.Add(str, new List<string> { val });
-            }
-            foreach (Cookie cookie in response.Cookies)
-            {
-                if (_cookie.ContainsKey(cookie.Name)) _cookie[cookie.Name].Add(cookie.Value);
-                else _cookie.Add(cookie.Name, new List<string> { cookie.Value });
-            }
-
-            #endregion
-
-            foreach (var item in _header) _web.Header.Add(item.Key, string.Join("; ", item.Value));
-
-            if (_cookie.Count > 0)
-            {
-                _web.Cookie = new Dictionary<string, string>();
-                foreach (var item in _cookie) _web.Cookie.Add(item.Key, string.Join(";", item.Value));
-            }
-
-            return _web;
-        }
         public long Val = 0, Max = 0;
 
-        byte[]? DownStream(long response_max, WebResult _web, Stream stream, out string outfile, string? savePath = null, string? saveName = null)
+        byte[]? DownStream(long response_max, ResultResponse _web, Stream stream, out string? outfile, string? savePath = null, string? saveName = null)
         {
             Max = response_max;
             long response_val = 0;
@@ -454,15 +301,9 @@ namespace HttpLib
             }
             else
             {
+                savePath = savePath.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
                 savePath.CreateDirectory();
-                if (!savePath.EndsWith("\\") || !savePath.EndsWith("/"))
-                {
-                    savePath = (savePath.EndsWith("\\") ? (savePath + "/") : (savePath + "\\"));
-                }
-                if (saveName == null)
-                {
-                    saveName = option.FileName(_web);
-                }
+                saveName ??= option.FileName(_web);
                 outfile = savePath + saveName;
                 stream_read = new FileStream(outfile, FileMode.Create);
             }
@@ -500,20 +341,19 @@ namespace HttpLib
                 }
                 else
                 {
+                    if (outfile != null) File.Delete(outfile);
                     outfile = null;
                     stream_read.Close();
-                    File.Delete(outfile);
                     return null;
                 }
             }
         }
 
-        byte[] GetByStream(WebResult _web, Stream stream)
+        byte[] GetByStream(ResultResponse _web, Stream stream)
         {
             stream.Seek(0, SeekOrigin.Begin);
             byte[] _byte = new byte[stream.Length];
             stream.Read(_byte, 0, _byte.Length);
-
             stream.Seek(0, SeekOrigin.Begin);
             string fileclass = "";
             try
@@ -534,52 +374,30 @@ namespace HttpLib
                 _web.Size = data.Length;
                 return data;
             }
-            else
-            {
-                return _byte;
-            }
+            else return _byte;
         }
 
         Encoding GetEncoding(HttpWebResponse response, byte[] data)
         {
-            Encoding encoding = Encoding.Default;
-            Match meta = Regex.Match(Encoding.Default.GetString(data), "<meta[^<]*charset=([^<]*)[\"']", RegexOptions.IgnoreCase);
-            string c = string.Empty;
+            var meta = Regex.Match(Encoding.Default.GetString(data), "<meta[^<]*charset=([^<]*)[\"']", RegexOptions.IgnoreCase);
             if (meta != null && meta.Groups.Count > 0)
             {
-                c = meta.Groups[1].Value.ToLower().Trim();
-            }
-            if (c.Length > 2)
-            {
-                try
+                var code = meta.Groups[1].Value.ToLower().Trim();
+                if (code.Length > 2)
                 {
-                    encoding = Encoding.GetEncoding(c.Replace("\"", string.Empty).Replace("'", "").Replace(";", "").Replace("iso-8859-1", "gbk").Trim());
-                }
-                catch
-                {
-                    if (string.IsNullOrEmpty(response.CharacterSet))
+                    try
                     {
-                        encoding = Encoding.UTF8;
+                        return Encoding.GetEncoding(code.Replace("\"", "").Replace("'", "").Replace(";", "").Replace("iso-8859-1", "gbk").Trim());
                     }
-                    else
-                    {
-                        encoding = Encoding.GetEncoding(response.CharacterSet);
-                    }
+                    catch { }
                 }
             }
-            else
+            try
             {
-                if (string.IsNullOrEmpty(response.CharacterSet))
-                {
-                    encoding = Encoding.UTF8;
-                }
-                else
-                {
-                    encoding = Encoding.GetEncoding(response.CharacterSet);
-                }
+                if (string.IsNullOrEmpty(response.CharacterSet)) return Encoding.UTF8;
+                else return Encoding.GetEncoding(response.CharacterSet);
             }
-
-            return encoding;
+            catch { return Encoding.UTF8; }
         }
 
         ///  <summary> 
@@ -618,6 +436,186 @@ namespace HttpLib
             {
                 return data;
             }
+        }
+
+        internal HttpWebRequest CreateRequest()
+        {
+            var uri = option.Url;
+
+            var cookies = new CookieContainer();
+
+            #region SSL
+
+            ServicePointManager.ServerCertificateValidationCallback ??= (_s, certificate, chain, sslPolicyErrors) => { return true; };
+
+            #endregion
+
+            var req = (HttpWebRequest)WebRequest.Create(uri);
+
+            if (option.proxy != null) req.Proxy = option.proxy;
+            else req.Proxy = Config._proxy;
+            req.Method = option.method.ToString().ToUpper();
+            req.AutomaticDecompression = Config.DecompressionMethod;
+            req.CookieContainer = cookies;
+            req.Host = uri.Host;
+
+            if (option.redirect) req.AllowAutoRedirect = option.redirect;
+            else req.AllowAutoRedirect = Config.Redirect;
+            var encoding = option.encoding ?? Encoding.UTF8;
+            if (option.timeout > 0) req.Timeout = option.timeout;
+
+            req.Credentials = CredentialCache.DefaultCredentials;
+            req.UserAgent = Config.UserAgent;
+
+            bool setContentType = true;
+            if (Config.headers != null && Config.headers.Count > 0) SetHeader(out setContentType, req, Config.headers, cookies);
+            if (option.header != null && option.header.Count > 0) SetHeader(out setContentType, req, option.header, cookies);
+
+            #region 准备上传数据
+
+            if (option.method != HttpMethod.Get && option.method != HttpMethod.Head)
+            {
+                if (!string.IsNullOrEmpty(option.datastr))
+                {
+                    if (setContentType) req.ContentType = "text/plain";
+
+                    var bs = encoding.GetBytes(option.datastr);
+                    req.ContentLength = bs.Length;
+                    using (var stream = req.GetRequestStream())
+                    {
+                        stream.Write(bs, 0, bs.Length);
+                    }
+                }
+                else if (option.file != null && option.file.Count > 0)
+                {
+                    string boundary = 8.RandomString();
+                    req.ContentType = "multipart/form-data; boundary=" + boundary;
+
+                    byte[] startbyteOnes = encoding.GetBytes("--" + boundary + "\r\n"),
+                        startbytes = encoding.GetBytes("\r\n--" + boundary + "\r\n"),
+                        endbytes = encoding.GetBytes("\r\n--" + boundary + "--\r\n");
+
+                    var writeDATA = new List<byte[]?>((option.data == null ? 0 : option.data.Count * 2) + option.file.Count * 3 + 1);
+
+                    int countB = 0;
+
+                    #region 规划文件大小
+
+                    if (option.data != null && option.data.Count > 0)
+                    {
+                        foreach (var it in option.data)
+                        {
+                            if (it.Value == null) continue;
+                            if (countB == 0) writeDATA.Add(startbyteOnes);
+                            else writeDATA.Add(startbytes);
+                            countB++;
+                            string separator = string.Format("Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}", it.Key, Uri.EscapeDataString(it.Value));
+                            writeDATA.Add(encoding.GetBytes(separator));
+                        }
+                    }
+
+                    foreach (var file in option.file)
+                    {
+                        if (countB == 0) writeDATA.Add(startbyteOnes);
+                        else writeDATA.Add(startbytes);
+                        countB++;
+                        string separator = string.Format("Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n", file.Name, file.FileName, file.ContentType);
+                        writeDATA.Add(encoding.GetBytes(separator));
+                        writeDATA.Add(null);
+                    }
+                    writeDATA.Add(endbytes);
+
+                    #endregion
+
+                    long size = writeDATA.Sum(it => it != null ? it.Length : 0) + option.file.Sum(it => it.Size);
+                    req.ContentLength = size;
+
+                    #region 注入进度
+
+                    _requestProgresMax?.Invoke(size);
+                    if (_requestProgres == null)
+                    {
+                        using (var stream = req.GetRequestStream())
+                        {
+                            int fileIndex = 0;
+                            foreach (var it in writeDATA)
+                            {
+                                if (it == null)
+                                {
+                                    var file = option.file[fileIndex];
+                                    fileIndex++;
+                                    using (file.Stream)
+                                    {
+                                        file.Stream.Seek(0, SeekOrigin.Begin);
+                                        int bytesRead = 0;
+                                        byte[] buffer = new byte[Config.CacheSize];
+                                        while ((bytesRead = file.Stream.Read(buffer, 0, buffer.Length)) > 0)
+                                        {
+                                            stream.Write(buffer, 0, bytesRead);
+                                        }
+                                    }
+                                }
+                                else stream.Write(it, 0, it.Length);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        long request_value = 0;
+                        _requestProgres(request_value, size);
+                        using (var stream = req.GetRequestStream())
+                        {
+                            int fileIndex = 0;
+                            foreach (var it in writeDATA)
+                            {
+                                if (it == null)
+                                {
+                                    var file = option.file[fileIndex];
+                                    fileIndex++;
+                                    using (file.Stream)
+                                    {
+                                        file.Stream.Seek(0, SeekOrigin.Begin);
+                                        int bytesRead = 0;
+                                        byte[] buffer = new byte[Config.CacheSize];
+                                        while ((bytesRead = file.Stream.Read(buffer, 0, buffer.Length)) > 0)
+                                        {
+                                            stream.Write(buffer, 0, bytesRead);
+                                            request_value += bytesRead;
+                                            _requestProgres(request_value, size);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    stream.Write(it, 0, it.Length);
+                                    request_value += it.Length;
+                                    _requestProgres(request_value, size);
+                                }
+                            }
+                        }
+                    }
+
+                    #endregion
+                }
+                else if (option.data != null && option.data.Count > 0)
+                {
+                    if (setContentType) req.ContentType = "application/x-www-form-urlencoded";
+
+                    var param_ = new List<string>(option.data.Count);
+                    foreach (var it in option.data) param_.Add(it.ToStringEscape());
+
+                    var bs = encoding.GetBytes(string.Join("&", param_));
+                    req.ContentLength = bs.Length;
+                    using (var stream = req.GetRequestStream())
+                    {
+                        stream.Write(bs, 0, bs.Length);
+                    }
+                }
+            }
+
+            #endregion
+
+            return req;
         }
 
         #endregion

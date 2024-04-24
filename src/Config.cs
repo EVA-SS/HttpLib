@@ -9,46 +9,57 @@ namespace HttpLib
     /// </summary>
     public class Config
     {
-        public static List<Val> _headers = null;
+        #region 请求头
+
+        public static List<Val>? headers = null;
 
         /// <summary>
-        /// 设置全局请求的头
+        /// 请求头
         /// </summary>
-        /// <param name="vals">多个请求头</param>
+        /// <param name="vals">多个参数</param>
         public static void header(params Val[] vals)
         {
-            foreach (var val in vals)
-                setVals(ref _headers, val);
+            headers ??= new List<Val>(vals.Length);
+            headers.AddRange(vals);
         }
 
-        public static void setVals(ref List<Val> obj, Val val)
+        /// <summary>
+        /// 请求头
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public static void header(IList<Val> vals)
         {
-            setVals(ref obj, val.Key, val.Value);
+            headers ??= new List<Val>(vals.Count);
+            headers.AddRange(vals);
         }
-        public static void setVals(ref List<Val> obj, string key, string val)
+
+        /// <summary>
+        /// 请求头
+        /// </summary>
+        /// <param name="key">键</param>
+        /// <param name="val">值</param>
+        public static void header(string key, string val)
         {
-            if (obj == null)
-            {
-                if (val != null)
-                    obj = new List<Val> { new Val(key, val) };
-            }
-            else
-            {
-                Val find = obj.Find(ab => ab.Key == key);
-                if (find == null) obj.Add(new Val(key, val));
-                else
-                {
-                    if (val != null) find.SetValue(val);
-                    else obj.Remove(find);
-                }
-            }
+            if (headers == null) headers = new List<Val> { new Val(key, val) };
+            else headers.Add(new Val(key, val));
         }
+
+        /// <summary>
+        /// 请求头
+        /// </summary>
+        /// <param name="vals">多个参数</param>
+        public static void header(IDictionary<string, string> vals)
+        {
+            headers ??= new List<Val>(vals.Count);
+            foreach (var it in vals) headers.Add(new Val(it.Key, it.Value));
+        }
+
+        #endregion
 
         /// <summary>
         /// 用户标识
         /// </summary>
         public static string UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36";
-
 
         /// <summary>
         /// 表示文件压缩和解压缩编码格式，该格式将用来压缩在 System.Net.HttpWebRequest 的响应中收到的数据
@@ -62,17 +73,16 @@ namespace HttpLib
 
         #region 全局错误
 
-        public delegate void ErrEventHandler(HttpCore core, WebResult result, Exception err);
+        public delegate void ErrEventHandler(HttpCore core, ResultResponse result);
 
         /// <summary>
         /// 接口调用失败的回调函数（带响应头）
         /// </summary>
-        public static event ErrEventHandler fail;
+        public static event ErrEventHandler? fail;
 
-
-        public static void OnFail(HttpCore core, WebResult result, Exception err)
+        public static void OnFail(HttpCore core, ResultResponse result)
         {
-            if (fail != null) { fail(core, result, err); }
+            fail?.Invoke(core, result);
         }
 
         #endregion
@@ -118,10 +128,7 @@ namespace HttpLib
         public static void proxy(string host, int port, string username, string password)
         {
             _proxy = new WebProxy(host, port);
-            if (!string.IsNullOrEmpty(username))
-            {
-                _proxy.Credentials = new NetworkCredential(username, password);
-            }
+            if (!string.IsNullOrEmpty(username)) _proxy.Credentials = new NetworkCredential(username, password);
         }
 
         #endregion

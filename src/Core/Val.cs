@@ -7,7 +7,7 @@ namespace HttpLib
         public Val(string key, int value) : this(key, value.ToString()) { }
         public Val(string key, long value) : this(key, value.ToString()) { }
         public Val(string key, double value) : this(key, value.ToString()) { }
-        public Val(string key, string value)
+        public Val(string key, string? value)
         {
             Key = key;
             Value = value;
@@ -20,11 +20,7 @@ namespace HttpLib
         /// <summary>
         /// 值
         /// </summary>
-        public string Value { get; set; }
-        public void SetValue(string value)
-        {
-            Value = value;
-        }
+        public string? Value { get; set; }
 
         public override string ToString()
         {

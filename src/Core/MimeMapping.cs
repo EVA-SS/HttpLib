@@ -55,7 +55,7 @@ namespace HttpLib
                 fileName = GetFileName(fileName);
                 for (int i = 0; i < fileName.Length; i++)
                 {
-                    if (fileName[i] == '.' && _mappings.TryGetValue(fileName.Substring(i), out string result)) return result;
+                    if (fileName[i] == '.' && _mappings.TryGetValue(fileName.Substring(i), out var result) && result != null) return result;
                 }
                 return _mappings[".*"];
             }
@@ -410,7 +410,7 @@ namespace HttpLib
                 AddMapping(".zip", "application/x-zip-compressed");
             }
         }
-        static MimeMappingDictionaryBase _mappingDictionary = new MimeMappingDictionaryClassic();
+        static readonly MimeMappingDictionaryBase _mappingDictionary = new MimeMappingDictionaryClassic();
 
         public static string GetMimeMapping(string fileName)
         {

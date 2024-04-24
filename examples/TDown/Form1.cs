@@ -21,7 +21,7 @@ namespace TDown
             {
                 DateTime start_time = DateTime.Now;
                 txt_start_time.Text = start_time.ToString("HH:mm:ss");
-                down = Http.Get(downUrl).downLoad(Program.BasePath);
+                down = Http.Get(downUrl).redirect().downLoad(Program.BasePath);
                 btn.Enabled = btn_resume.Enabled = false;
                 btn_suspend.Enabled = btn_stop.Enabled = true;
                 down.ValueChange(t =>
@@ -143,7 +143,7 @@ namespace TDown
             int unit = 0;
             while (_val > 1024)
             {
-                _val = _val / 1024;
+                _val /= 1024;
                 unit++;
                 if (unit > 5)
                 {

@@ -1,4 +1,4 @@
-# HttpLib 便捷的Http库 | Http/M3u8多线程下载库
+# HttpLib 便捷的Http库 | 多线程下载库
 
 如果你喜欢 HttpLib 项目，请为本项点亮一颗星 ⭐！
 
@@ -31,12 +31,11 @@
         * [异步错误](#异步错误)
         * [异步请求](#异步请求)
         * [同步获取](#同步获取)
-* [实例1](#实例1)
-* [实例2](#实例2)
-* [实例下载文件异步](#实例下载文件异步)
+* [实例](#实例)
+* [实例下载文件](#实例下载文件)
 * [实例获取域名IP](#实例获取域名IP)
 * [实例全局错误捕获](#实例全局错误捕获)
-* [WebResult介绍](#WebResult介绍)
+* [ResultResponse介绍](#ResultResponse介绍)
 
 
 # 示例
@@ -88,7 +87,7 @@ proxy("127.0.0.1",1000)
 ### 启用重定向
 >默认禁止
 ``` csharp
-redirect(true)
+redirect()
 ```
 ### 设置超时时长
 >`毫秒`（默认不超时）
@@ -103,7 +102,7 @@ encoding('utf-8')
 
 ### 请求之前处理
 ``` csharp
-before((WebResult r) =>
+before((HttpWebResponse response, ResultResponse result) =>
 {
 	return true; //继续请求
 })
@@ -132,16 +131,8 @@ responseProgres((bytesSent, totalBytes) => {
 ## 请求
 ### 异步错误
 ``` csharp
-fail((Exception e) => {
+fail((ResultResponse result) => {
 })
-```
-### 异步请求
-``` csharp
-success((WebResult web,string result) => {
-	//放在最后
-});
-
-requestAsync();//主动调用异步方法
 ```
 ### 同步获取
 ``` csharp
@@ -151,78 +142,41 @@ requestData();//返回字节
 download("保存目录", "保存文件名称（为空自动获取）");//下载文件
 ```
 
-# 实例1
->异步
-``` csharp
-Config.UserAgent = "测试的UserAgent";
+# 实例
 
-Http.Get("https://www.baidu.com/s")
-.data(new { wd = "GitHub - Haku-Men HttpLib", params_ = "关键字参数" })
-.redirect(true)
-.requestProgres((bytesSent, totalBytes) => {
-	double prog = (bytesSent * 1.0) / (totalBytes * 1.0);
-	Console.Write("{0}% 上传", Math.Round(prog * 100.0, 1).ToString("N1"));
-})
-.responseProgres((bytesSent, totalBytes) => {
-	if (totalBytes>0)
-	{
-		double prog = (bytesSent * 1.0) / (totalBytes * 1.0);
-		Console.Write("{0}% 下载", Math.Round(prog * 100.0, 1).ToString("N1"));
-	}
-})
-.fail((Exception e) => {
-	Console.Write(e.GetType());
-	Console.Write(e.Message);
-})
-.success((WebResult web,string result) => {
-	Console.Write(result);
-});
-```
-
-# 实例2 
->同步
 ``` csharp
 string result = Http.Get("https://www.baidu.com/s")
 .data(new { wd = "GitHub - Haku-Men HttpLib", params_ = "关键字参数" })
-.redirect(true)
-.fail((Exception e) => {
-	Console.Write(e.GetType());
-	Console.Write(e.Message);
-})
+.redirect()
 .request();
 Console.Write(result);
 ```
 
-# 实例下载文件异步
+# 实例下载文件
 ``` csharp
-Http.Get("https://dldir1.qq.com/qqfile/qq/PCQQ9.6.2/QQ9.6.2.28756.exe")
-.header(headerss)
-.redirect(true)
-.responseProgres((bytesSent, totalBytes) =>
-{
-    Console.SetCursorPosition(0, 0);
-    if (totalBytes > 0)
-    {
-        double prog = (bytesSent * 1.0) / (totalBytes * 1.0);
-        Console.Write("{0}% 下载 {1}/{2}                  ", Math.Round(prog * 100.0, 1).ToString("N1"), CountSize(bytesSent), CountSize(totalBytes));
-    }
-    else
-    {
-        Console.Write("{0} 下载            ", CountSize(bytesSent));
-    }
-}).download(@"C:\Users\admin\Desktop", "qq.exe").ContinueWith(savapath =>
-{
-    if (savapath.Result != null)
-    {
-        Console.WriteLine("下载成功保存至:" + savapath.Result);
-    }
-    else
-    {
-        Console.WriteLine("下载失败");
-    }
-}).Wait();
+var savapath = Http.Get("https://dldir1.qq.com/qqfile/qq/QQNT/Windows/QQ_9.9.9_240422_x64_01.exe")
+       .redirect()
+       .responseProgres((bytesSent, totalBytes) =>
+       {
+           Console.SetCursorPosition(0, 0);
+           if (totalBytes > 0)
+           {
+               double prog = (bytesSent * 1.0) / (totalBytes * 1.0);
+               Console.Write("{0}% 下载 {1}/{2}                  ", Math.Round(prog * 100.0, 1).ToString("N1"), CountSize(bytesSent), CountSize(totalBytes));
+           }
+           else
+           {
+               Console.Write("{0} 下载            ", CountSize(bytesSent));
+           }
+       }).download(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "qq.exe");
+if (savapath != null) Console.WriteLine("下载成功保存至:" + savapath);
+else Console.WriteLine("下载失败");
 ```
 
+# 实例获取域名IP
+``` csharp
+Http.Get("https://www.baidu.com").IP
+```
 # 实例获取域名IP
 ``` csharp
 Http.Get("https://www.baidu.com").IP
@@ -230,22 +184,25 @@ Http.Get("https://www.baidu.com").IP
 
 # 实例全局错误捕获
 ``` csharp
-Config.fail += (HttpCore core, WebResult result, Exception err)=>
+Config.fail += (HttpCore core, ResultResponse result)=>
 {
+    if (result.Exception == null) return;
     Console.Write(err.GetType());
     Console.Write(err.Message);
 };
 ```
 
-# WebResult介绍
+# ResultResponse介绍
 
-|代码|解释|说明|
-|:------------|:---------------:|:------------|
-|StatusCode|状态代码|`200` 为正常 常见的有`404`未找到、`302`重定向、`502`网址报错|
-|ServerHeader|服务头|HTTP 200 OK BWS/1.1 Ver:1.1|
-|AbsoluteUri|最终的地址||
-|Type|服务指示类型|`Content-Type`|
-|Header|响应头||
-|Cookie|Cookie||
-|OriginalSize|流原始大小|动态压缩|
-|Size|流大小||
+|代码|类型|解释|说明|
+|:--|:--|:--:|:--|
+|StatusCode|int|状态代码|`200` 为正常 常见的有`404`未找到、`302`重定向、`502`网址报错|
+|IsSuccessStatusCode|bool|响应是否成功|range `200`-`299`|
+|ServerHeader|string`?`|服务头|HTTP 200 OK BWS/1.1 Ver:1.1|
+|Uri|Uri|最终的地址||
+|Type|string`?`|服务指示类型|`Content-Type`|
+|Header|Dictionary<string, string>|响应头||
+|Cookie|Dictionary<string, string>|Cookie||
+|OriginalSize|long|流原始大小|动态压缩|
+|Size|long|流大小||
+|Exception|Exception`?`|异常信息||
