@@ -102,6 +102,43 @@ namespace HttpLib
         {
             return new HttpCore(url, method);
         }
+
+        #region 缓存
+
+        public static string? Cache(this string ID, int time = 0)
+        {
+            var file = Config.CacheFolder + ID;
+            if (System.IO.File.Exists(Config.CacheFolder + ID))
+            {
+                if (time > 0)
+                {
+                    var t = System.IO.File.GetCreationTime(file);
+                    var elapsedTicks = DateTime.Now.Ticks - t.Ticks;
+                    var elapsedSpan = new TimeSpan(elapsedTicks);
+                    if (elapsedSpan.TotalMinutes < time) return System.IO.File.ReadAllText(file);
+                }
+                else return System.IO.File.ReadAllText(file);
+            }
+            return null;
+        }
+        public static byte[]? CacheData(this string ID, int time = 0)
+        {
+            var file = Config.CacheFolder + ID;
+            if (System.IO.File.Exists(Config.CacheFolder + ID))
+            {
+                if (time > 0)
+                {
+                    var t = System.IO.File.GetCreationTime(file);
+                    var elapsedTicks = DateTime.Now.Ticks - t.Ticks;
+                    var elapsedSpan = new TimeSpan(elapsedTicks);
+                    if (elapsedSpan.TotalDays < time) return System.IO.File.ReadAllBytes(file);
+                }
+                else return System.IO.File.ReadAllBytes(file);
+            }
+            return null;
+        }
+
+        #endregion
     }
 
     /// <summary>
@@ -119,7 +156,7 @@ namespace HttpLib
         public ResultResponse(HttpWebResponse data, Exception ex) : this(data) { Exception = ex; }
         public ResultResponse(HttpWebResponse data)
         {
-            OriginalSize = Size = -1;
+            OriginalSize = Size = data.ContentLength;
             StatusCode = (int)data.StatusCode;
             Type = data.ContentType;
             ServerHeader = string.Join(" ", new string[] {

@@ -4,6 +4,9 @@ namespace HttpLib
 {
     public class Val
     {
+        public Val(string key, int? value) : this(key, value?.ToString()) { }
+        public Val(string key, long? value) : this(key, value?.ToString()) { }
+        public Val(string key, double? value) : this(key, value?.ToString()) { }
         public Val(string key, int value) : this(key, value.ToString()) { }
         public Val(string key, long value) : this(key, value.ToString()) { }
         public Val(string key, double value) : this(key, value.ToString()) { }

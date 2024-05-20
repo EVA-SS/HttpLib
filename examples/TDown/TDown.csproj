@@ -4,7 +4,12 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <ForceDesignerDpiUnaware>true</ForceDesignerDpiUnaware>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AntdUI" Version="1.2.3" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\HttpLib.csproj" />

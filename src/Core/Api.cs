@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Mime;
 
 namespace HttpLib
 {
@@ -94,13 +95,8 @@ namespace HttpLib
 
         public static string FileNameDisposition(this string disposition)
         {
-            var filename = disposition.Substring(disposition.ToUpper().IndexOf("filename=") + 9);
-            if (filename.Contains(";"))
-            {
-                filename = filename.Substring(0, filename.IndexOf(";"));
-                if (filename.EndsWith("\"")) filename = filename.Substring(1, filename.Length - 2);
-            }
-            return filename;
+            var cd = new ContentDisposition(disposition);
+            return cd.FileName;
         }
         public static string FileName(this Uri uri)
         {
@@ -121,6 +117,13 @@ namespace HttpLib
         /// </summary>
         public static string CombineMultipleFilesIntoSingleFile(this List<string> files, string filePath, string WorkPath)
         {
+            if (files.Count == 1)
+            {
+                File.Move(files[0], filePath);
+                //删除临时文件夹
+                WorkPath.DeleteDirectory();
+                return filePath;
+            }
             using (var MergeFile = new FileStream(filePath, FileMode.Create))
             {
                 using (var AddWriter = new BinaryWriter(MergeFile))

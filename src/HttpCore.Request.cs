@@ -33,6 +33,19 @@ namespace HttpLib
         }
 
         /// <summary>
+        /// 下载文件
+        /// </summary>
+        /// <param name="savePath">保存目录</param>
+        /// <param name="saveName">保存文件名称（为空自动获取）</param>
+        /// <returns>返回保存文件路径，为空下载失败</returns>
+        public string? download(out ResultResponse result, string savePath, string? saveName = null)
+        {
+            var val = Go(3, savePath, saveName);
+            result = val.web;
+            return val.str;
+        }
+
+        /// <summary>
         /// 请求（返回字节）
         /// </summary>
         /// <param name="result">响应结果</param>
@@ -115,6 +128,50 @@ namespace HttpLib
         {
             try
             {
+                if (_cache != null)
+                {
+                    if (File.Exists(_cache.file))
+                    {
+                        if (_cache.t > 0)
+                        {
+                            var t = File.GetCreationTime(_cache.file);
+                            var elapsedTicks = DateTime.Now.Ticks - t.Ticks;
+                            var elapsedSpan = new TimeSpan(elapsedTicks);
+                            if (elapsedSpan.TotalMinutes < _cache.t)
+                            {
+                                switch (resultMode)
+                                {
+                                    case 1:
+                                        return new TaskResult(new ResultResponse(option.Url)
+                                        {
+                                            StatusCode = 200
+                                        }, File.ReadAllText(_cache.file));
+                                    case 2:
+                                        return new TaskResult(new ResultResponse(option.Url)
+                                        {
+                                            StatusCode = 200
+                                        }, File.ReadAllBytes(_cache.file));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            switch (resultMode)
+                            {
+                                case 1:
+                                    return new TaskResult(new ResultResponse(option.Url)
+                                    {
+                                        StatusCode = 200
+                                    }, File.ReadAllText(_cache.file));
+                                case 2:
+                                    return new TaskResult(new ResultResponse(option.Url)
+                                    {
+                                        StatusCode = 200
+                                    }, File.ReadAllBytes(_cache.file));
+                            }
+                        }
+                    }
+                }
                 abort();
                 req = CreateRequest();
                 using (response = (HttpWebResponse)req.GetResponse())
@@ -145,7 +202,14 @@ namespace HttpLib
                                     {
                                         var encodings = option.encoding;
                                         if (encodings == null || option.autoencode) encodings = GetEncoding(response, data);
-                                        return new TaskResult(_web, encodings.GetString(data));
+
+                                        var result = encodings.GetString(data);
+                                        if (_cache != null)
+                                        {
+                                            _cache.path.CreateDirectory();
+                                            File.WriteAllText(_cache.file, result);
+                                        }
+                                        return new TaskResult(_web, result);
                                     }
                                 }
                             }
@@ -160,7 +224,13 @@ namespace HttpLib
                         case 2:
                             using (var stream = response.GetResponseStream())
                             {
-                                return new TaskResult(_web, DownStream(response_max, _web, stream, out _));
+                                var result = DownStream(response_max, _web, stream, out _);
+                                if (result != null && _cache != null)
+                                {
+                                    _cache.path.CreateDirectory();
+                                    File.WriteAllBytes(_cache.file, result);
+                                }
+                                return new TaskResult(_web, result);
                             }
                         case 0:
                         default:
@@ -458,6 +528,7 @@ namespace HttpLib
             req.AutomaticDecompression = Config.DecompressionMethod;
             req.CookieContainer = cookies;
             req.Host = uri.Host;
+            if (_range != null) req.AddRange(_range[0], _range[1]);
 
             if (option.redirect) req.AllowAutoRedirect = option.redirect;
             else req.AllowAutoRedirect = Config.Redirect;
@@ -602,7 +673,11 @@ namespace HttpLib
                     if (setContentType) req.ContentType = "application/x-www-form-urlencoded";
 
                     var param_ = new List<string>(option.data.Count);
-                    foreach (var it in option.data) param_.Add(it.ToStringEscape());
+                    foreach (var it in option.data)
+                    {
+                        if (it.Value == null) continue;
+                        param_.Add(it.ToStringEscape());
+                    }
 
                     var bs = encoding.GetBytes(string.Join("&", param_));
                     req.ContentLength = bs.Length;

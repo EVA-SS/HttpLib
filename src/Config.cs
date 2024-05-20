@@ -9,6 +9,8 @@ namespace HttpLib
     /// </summary>
     public class Config
     {
+        public static string? CacheFolder = null;
+
         #region 请求头
 
         public static List<Val>? headers = null;

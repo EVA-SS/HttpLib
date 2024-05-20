@@ -1,10 +1,11 @@
 ﻿using HttpLib;
 using System;
+using System.Text;
 using System.Windows.Forms;
 
 namespace TDown
 {
-    public partial class Form1 : Form
+    public partial class Form1 : AntdUI.BaseForm
     {
         public Form1()
         {
@@ -13,92 +14,83 @@ namespace TDown
         HttpDown down;
         private void btn_Click(object sender, EventArgs e)
         {
-            progress.Maximum = progress.Value = 0;
-            txt_state.Text = txt_speed.Text = txt_time.Text = txt_max.Text = txt_value.Text = txt_start_time.Text = txt_end_time.Text = null;
+            progress.Value = 0;
+            txt_state.State = AntdUI.TState.Default;
+            txt_state.Text = "待下载";
+            txt_speed.Text = txt_time.Text = txt_max.Text = txt_value.Text = txt_start_time.Text = txt_end_time.Text = null;
             int maxThreads = Environment.ProcessorCount;
             string downUrl = txt_uri.Text;
             if (int.TryParse(textBox2.Text, out int taskCount))
             {
+                progress.Loading = true;
                 DateTime start_time = DateTime.Now;
                 txt_start_time.Text = start_time.ToString("HH:mm:ss");
                 down = Http.Get(downUrl).redirect().downLoad(Program.BasePath);
+                down.ID = MD5Encrypt16(downUrl);
                 btn.Enabled = btn_resume.Enabled = false;
                 btn_suspend.Enabled = btn_stop.Enabled = true;
                 down.ValueChange(t =>
                 {
-                    txt_max.Invoke(new Action(() =>
+                    double prog = t / down.MaxValue;
+                    if (down.MaxValue > t)
                     {
-                        if (down.MaxValue > t)
-                        {
-                            progress.Value = (int)t;
-                            txt_prog.Text = Math.Round(t / down.MaxValue * 100.0, 1) + "%";
-                        }
-                        txt_value.Text = ByteUnit(t);
-                    }));
+                        progress.Value = (float)prog;
+                        txt_prog.Text = Math.Round(prog * 100.0, 1) + "%";
+                    }
+                    txt_value.Text = ByteUnit(t);
                 });
                 down.MaxValueChange(t =>
                 {
                     if (t > 0)
                     {
-                        txt_max.Invoke(new Action(() =>
-                        {
-                            progress.Maximum = (int)t;
-                            txt_prog.Text = Math.Round(down.Value / t * 100.0, 1) + "%";
-                            txt_max.Text = ByteUnit(t);
-                        }));
+                        txt_prog.Text = Math.Round(down.Value / t * 100.0, 1) + "%";
+                        txt_max.Text = ByteUnit(t);
                     }
                     else
                     {
-                        txt_max.Invoke(new Action(() =>
-                        {
-                            txt_prog.Text = "∞";
-                            txt_max.Text = "未知";
-                        }));
+                        txt_prog.Text = "∞";
+                        txt_max.Text = "未知";
                     }
                 });
                 down.StateChange((t, err) =>
                 {
-                    txt_state.Invoke(new Action(() =>
+                    switch (t)
                     {
-                        switch (t)
-                        {
-                            case HttpDown.DownState.Complete:
-                                txt_state.Text = "完成 " + err;
-                                break;
-                            case HttpDown.DownState.Downloading:
-                                txt_state.Text = "下载中";
-                                break;
-                            case HttpDown.DownState.Fail:
-                                txt_state.Text = "异常 " + err;
-                                break;
-                            case HttpDown.DownState.Stop:
-                                txt_state.Text = "已停止 " + err;
-                                break;
-                        }
-                    }));
+                        case HttpDown.DownState.Complete:
+                            txt_state.State = AntdUI.TState.Success;
+                            txt_state.Text = "完成 " + err;
+                            break;
+                        case HttpDown.DownState.Downloading:
+                            txt_state.State = AntdUI.TState.Processing;
+                            txt_state.Text = "下载中";
+                            break;
+                        case HttpDown.DownState.Fail:
+                            txt_state.State = AntdUI.TState.Error;
+                            txt_state.Text = "异常";
+                            break;
+                        case HttpDown.DownState.Stop:
+                            txt_state.State = AntdUI.TState.Warn;
+                            txt_state.Text = "已停止 " + err;
+                            break;
+                    }
                 });
                 down.TimeChange(t =>
                 {
-                    txt_time.Invoke(new Action(() =>
-                    {
-                        txt_time.Text = t;
-                    }));
+                    txt_time.Text = t;
                 });
                 down.SpeedChange(t =>
                 {
-                    txt_speed.Invoke(new Action(() =>
-                    {
-                        txt_start_time.Text = start_time.ToString("HH:mm:ss") + " | 耗时 " + Math.Round((DateTime.Now - start_time).TotalSeconds) + "秒";
-                        txt_speed.Text = ByteUnit(t);
-                    }));
+                    txt_start_time.Text = start_time.ToString("HH:mm:ss") + " | 耗时 " + Math.Round((DateTime.Now - start_time).TotalSeconds) + "秒";
+                    txt_speed.Text = ByteUnit(t);
                 });
                 down.Go(taskCount).ContinueWith((action =>
                 {
+                    progress.Loading = false;
                     DateTime end_time = DateTime.Now;
+                    txt_start_time.Text = start_time.ToString("HH:mm:ss");
+                    txt_end_time.Text = end_time.ToString("HH:mm:ss") + " | 耗时 " + Math.Round((end_time - start_time).TotalSeconds) + "秒";
                     Invoke(new Action(() =>
                     {
-                        txt_start_time.Text = start_time.ToString("HH:mm:ss");
-                        txt_end_time.Text = end_time.ToString("HH:mm:ss") + " | 耗时 " + Math.Round((end_time - start_time).TotalSeconds) + "秒";
                         btn_stop.Enabled = btn_suspend.Enabled = btn_resume.Enabled = false;
                         btn.Enabled = true;
                     }));
@@ -170,5 +162,13 @@ namespace TDown
         }
 
         #endregion
+
+        public static string MD5Encrypt16(string str)
+        {
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            {
+                return BitConverter.ToString(md5.ComputeHash(Encoding.UTF8.GetBytes(str)), 4, 8).Replace("-", "").ToUpper();
+            }
+        }
     }
 }

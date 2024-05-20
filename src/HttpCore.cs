@@ -210,6 +210,39 @@ namespace HttpLib
             return this;
         }
 
+        /// <summary>
+        /// 请求参（文件）
+        /// </summary>
+        /// <param name="vals">多个文件</param>
+        public HttpCore file(params string[] vals)
+        {
+            option.file ??= new List<Files>(vals.Length);
+            foreach (var item in vals) option.file.Add(new Files(item));
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参（文件）
+        /// </summary>
+        /// <param name="vals">多个文件</param>
+        public HttpCore file(params Files[] vals)
+        {
+            option.file ??= new List<Files>(vals.Length);
+            option.file.AddRange(vals);
+            return this;
+        }
+
+        /// <summary>
+        /// 请求参（文件）
+        /// </summary>
+        /// <param name="vals">多个文件</param>
+        public HttpCore file(IList<Files> vals)
+        {
+            option.file ??= new List<Files>(vals.Count);
+            option.file.AddRange(vals);
+            return this;
+        }
+
         #endregion
 
         #endregion
@@ -389,6 +422,83 @@ namespace HttpLib
         public HttpCore timeout(int time)
         {
             option.timeout = time;
+            return this;
+        }
+
+        #endregion
+
+        #region 缓存
+
+        CacheModel? _cache = null;
+        /// <summary>
+        /// 设置缓存
+        /// </summary>
+        /// <param name="id">缓存id</param>
+        public HttpCore cache(string id)
+        {
+            _cache = new CacheModel(id);
+            return this;
+        }
+
+        /// <summary>
+        /// 设置缓存
+        /// </summary>
+        /// <param name="id">缓存id</param>
+        /// <param name="time">有效期 分钟</param>
+        public HttpCore cache(string id, int time)
+        {
+            _cache = new CacheModel(id) { t = time };
+            return this;
+        }
+
+        class CacheModel
+        {
+            public CacheModel(string _id)
+            {
+                if (Config.CacheFolder == null) throw new Exception("先配置\"Config.CachePath\"");
+                path = Config.CacheFolder;
+                id = _id;
+                file = path + _id;
+            }
+            public string id { get; set; }
+            public int t = 0;
+            public string path { get; set; }
+            public string file { get; set; }
+        }
+
+        #endregion
+
+        #region 分块
+
+        /// <summary>
+        /// 清空字节范围
+        /// </summary>
+        public HttpCore range()
+        {
+            _range = null;
+            return this;
+        }
+
+        long[]? _range = null;
+        /// <summary>
+        /// 字节范围
+        /// </summary>
+        /// <param name="from">开始发送数据的位置</param>
+        /// <param name="to">停止发送数据的位置</param>
+        public HttpCore range(long from, long to)
+        {
+            _range = new long[] { from, to };
+            return this;
+        }
+
+        /// <summary>
+        /// 字节范围
+        /// </summary>
+        /// <param name="from">开始发送数据的位置</param>
+        /// <param name="to">停止发送数据的位置</param>
+        public HttpCore range(int from, int to)
+        {
+            _range = new long[] { from, to };
             return this;
         }
 

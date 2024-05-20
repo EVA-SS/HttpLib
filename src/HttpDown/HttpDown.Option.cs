@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -97,8 +96,8 @@ namespace HttpLib
 
         #region 非公开
 
-        Dictionary<int, long> ValTemp = new Dictionary<int, long>();
-        Dictionary<int, long> MaxValTemp = new Dictionary<int, long>();
+        long[] ValTemp = new long[0];
+        long[] MaxValTemp = new long[0];
         ManualResetEvent resetState = new ManualResetEvent(true);
 
         #endregion
@@ -114,15 +113,15 @@ namespace HttpLib
         int DownCount = 0, TotalCount = 0;
         void SetMaxValue(long value)
         {
-            if (_MaxValue != value)
-            {
-                _MaxValue = value;
-                _MaxValueChange?.Invoke(value);
-            }
+            if (_MaxValue == value) return;
+            _MaxValue = value;
+            _MaxValueChange?.Invoke(value);
         }
         void SetMaxValue()
         {
-            try { var val = MaxValTemp.Sum(it => it.Value); if (TotalCount > 0) { SetMaxValue(val * TotalCount / DownCount); } else { SetMaxValue(val); } } catch { }
+            var val = MaxValTemp.Sum();
+            if (TotalCount > 0) SetMaxValue(val * TotalCount / DownCount);
+            else SetMaxValue(val);
         }
 
         Action<long>? _MaxValueChange;
@@ -141,15 +140,13 @@ namespace HttpLib
 
         void SetValue(long value)
         {
-            if (_Value != value)
-            {
-                _Value = value;
-                _ValueChange?.Invoke(value);
-            }
+            if (_Value == value) return;
+            _Value = value;
+            _ValueChange?.Invoke(value);
         }
         void SetValue()
         {
-            try { SetValue(ValTemp.Sum(it => it.Value)); } catch { }
+            SetValue(ValTemp.Sum());
         }
 
         Action<long>? _ValueChange;
@@ -170,11 +167,9 @@ namespace HttpLib
         void SetSpeed(long value)
         {
             if (!canSpeed) return;
-            if (_Speed != value)
-            {
-                _Speed = value;
-                _SpeedChange?.Invoke(value);
-            }
+            if (_Speed == value) return;
+            _Speed = value;
+            _SpeedChange?.Invoke(value);
         }
 
         Action<long>? _SpeedChange;
@@ -194,11 +189,9 @@ namespace HttpLib
         void SetTime(string? value)
         {
             if (!canSpeed) return;
-            if (_Time != value)
-            {
-                _Time = value;
-                _TimeChange?.Invoke(value);
-            }
+            if (_Time == value) return;
+            _Time = value;
+            _TimeChange?.Invoke(value);
         }
 
         Action<string?>? _TimeChange;
@@ -217,11 +210,9 @@ namespace HttpLib
 
         void SetState(DownState value, string? err = null)
         {
-            if (_State != value)
-            {
-                _State = value;
-                _StateChange?.Invoke(value, err);
-            }
+            if (_State == value) return;
+            _State = value;
+            _StateChange?.Invoke(value, err);
         }
 
         Action<DownState, string?>? _StateChange;
