@@ -23,8 +23,8 @@ namespace HttpLib
         /// <summary>
         /// 下载-自定义下载线程数
         /// </summary>
-        public Task<string?> Go(int TaskCount)
-        { return Go(TaskCount, null); }
+        public Task<string?> Go(int ThreadCount)
+        { return Go(ThreadCount, null); }
 
         /// <summary>
         /// 下载-自定义保存文件名称
@@ -38,68 +38,22 @@ namespace HttpLib
         /// <summary>
         /// 下载
         /// </summary>
-        /// <param name="TaskCount">线程数</param>
+        /// <param name="ThreadCount">线程数</param>
         /// <param name="FileName">文件名称</param>
-        public Task<string?> Go(int TaskCount, string? FileName)
+        public Task<string?> Go(int ThreadCount, string? FileName)
         {
-            canSpeed = true;
+            CanSpeed = true;
 #if NET40
             return Task.Factory.StartNew(() =>
             {
-                return DownCore(TaskCount, FileName);
+                return DownLoad(ThreadCount, FileName);
             });
 #else
             return Task.Run(() =>
             {
-                return DownCore(TaskCount, FileName);
+                return DownLoad(ThreadCount, FileName);
             });
 #endif
-        }
-
-        #endregion
-
-        #region 计算速度
-
-        void TestTime()
-        {
-            var times = new List<int>();
-            long oldsize = 0;
-            var action_time = () =>
-            {
-                while (_State == DownState.Downloading || _State == DownState.Stop)
-                {
-                    Thread.Sleep(1000);
-                    long _downsize = _Value - oldsize;
-                    oldsize = _Value;
-
-                    if (_downsize > 0)
-                    {
-                        int se = (int)((_MaxValue - oldsize) / _downsize);
-                        if (se < 1)
-                        {
-                            SetTime(null);
-                            SetSpeed(_downsize);
-                        }
-                        else
-                        {
-                            times.Add(se);
-
-                            if (times.Count > 4)
-                            {
-                                int AVE = (int)Math.Ceiling(times.Average());
-                                times.Clear();
-                                TimeSpan timeSpan = new TimeSpan(0, 0, 0, AVE);
-                                string time_txt = $"{timeSpan.Hours.ToString().PadLeft(2, '0')}:{timeSpan.Minutes.ToString().PadLeft(2, '0')}:{timeSpan.Seconds.ToString().PadLeft(2, '0')}";
-                                if (time_txt.StartsWith("00:")) time_txt = time_txt.Substring(3);
-                                SetTime(time_txt);
-                            }
-                            SetSpeed(_downsize);
-                        }
-                    }
-                    else SetSpeed(0);
-                }
-            };
-            ITask.Run(action_time);
         }
 
         #endregion
@@ -142,176 +96,177 @@ namespace HttpLib
 
         #region 核心
 
-        string? DownCore(int TaskCount, string? FileName)
+        string? DownLoad(int ThreadCount, string? FileName)
         {
             string WorkPath = SavePath + (ID ?? Guid.NewGuid().ToString()) + Path.DirectorySeparatorChar;
             WorkPath.CreateDirectory();
-            long Length = PreRequest(this, out bool cSeek, out var Disposition);
-            FileName ??= Uri.FileName(Disposition);
-            SaveFullName = SavePath + FileName;
-            var files = new List<FilesResult>();
+            long Length = HttpDownLib.PreRequest(this, out bool can_range, out var disposition);
+            FileName ??= Uri.FileName(disposition);
             TotalCount = DownCount = 0;
 
             #region 任务分配
 
-            long _down_length = Length;
-            int _taskcount = 1;
-            if (cSeek && Length > 0 && Length > 2097152)
+            long SingleFileLength = Length;
+            int TaskCount = 1;
+            if (can_range && Length > 2097152)
             {
-                _down_length = 2097152;
-                _taskcount = (int)Math.Ceiling(Length / (_down_length * 1.0));//任务分块
+                SingleFileLength = 2097152;//大于2MB才做切片
+                TaskCount = (int)Math.Ceiling(Length / (SingleFileLength * 1.0));//任务分块
             }
 
-            List<long> ValTmp = new List<long>(_taskcount), MaxTmp = new List<long>(_taskcount);
-            for (int i = 0; i < _taskcount; i++)
+            var files = new List<FilesResult>(TaskCount);
+            List<long> valTmp = new List<long>(TaskCount), maxTmp = new List<long>(TaskCount);
+            for (int i = 0; i < TaskCount; i++)
             {
-                long _s = _down_length * i;
-                long _e = _down_length;
-                if ((_s + _down_length) > Length) _e = _down_length - ((_s + _down_length) - Length);
+                long byte_start = SingleFileLength * i, byte_end = SingleFileLength;
+                if ((byte_start + SingleFileLength) > Length) byte_end = SingleFileLength - ((byte_start + SingleFileLength) - Length);
 
-                string filename_temp = $"{i}_{_s}_{_s + _e}.temp";
-                files.Add(new FilesResult(i, WorkPath + filename_temp, _s, _e));
-                ValTmp.Add(0);
-                MaxTmp.Add(_e);
+                string filename_tmp = $"{i}_{byte_start}_{byte_start + byte_end}.temp";
+                files.Add(new FilesResult(i, WorkPath + filename_tmp, byte_start, byte_end));
+                valTmp.Add(0);
+                maxTmp.Add(byte_end);
             }
-            ValTemp = ValTmp.ToArray();
-            MaxValTemp = MaxTmp.ToArray();
+            ValTmp = valTmp.ToArray();
+            MaxTmp = maxTmp.ToArray();
 
             SetMaxValue();
 
             #endregion
 
-            return DownCore(FileName, WorkPath, Length, cSeek, files, TaskCount);
+            var option = new HttpDownOption(this, ThreadCount, FileName, SavePath, WorkPath, can_range);
+            return HttpDownLib.DownLoad(option, files.ToArray());
         }
 
-        string? DownCore(string fileName, string WorkPath, long Length, bool cSeek, List<FilesResult> files, int taskCount)
+        #endregion
+    }
+
+    internal class HttpDownLib
+    {
+        #region 核心
+
+        public static string? DownLoad(HttpDownOption option, FilesResult[] fileRS)
         {
-            core.range();
-            SetState(DownState.Downloading);
-            TestTime();
-            bool isStop = false;
-            var tasks = new List<Task>();
-            foreach (var it in files)
+            option.core.core.range();
+            option.core.SetState(DownState.Downloading, null);
+            option.core.CanSpeed = true;
+            TestTime(option);
+            bool is_stop = false;
+            var tasks = new List<Task>(fileRS.Length);
+            foreach (var it in fileRS)
             {
                 try
                 {
-                    resetState.WaitOne();
+                    option.core.resetState.WaitOne();
                 }
                 catch
                 {
-                    isStop = true;
-                    SetState(DownState.Complete, "主动停止");
+                    is_stop = true;
+                    option.core.SetState(DownState.Complete, "主动停止");
                     return null;
                 }
                 tasks.Add(ITask.Run(() =>
                 {
-                    DownOne(it, cSeek, ref isStop);
+                    DownLoadSingle(option, it, ref is_stop);
                 }));
-                if (tasks.Count > taskCount)
+                if (tasks.Count > option.ThreadCount)
                 {
                     Task.WaitAny(tasks.ToArray());
                     tasks = tasks.Where(t => t.Status == TaskStatus.Running).ToList();
                 }
             }
             Task.WaitAll(tasks.ToArray());
-            canSpeed = false;
-            if (isStop) SetState(DownState.Complete, "主动停止");
+            option.core.CanSpeed = false;
+            if (is_stop) option.core.SetState(DownState.Complete, "主动停止");
             else
             {
-                var _files = new List<string>(files.Count);
-                foreach (FilesResult it in files)
+                var files = new List<string>(fileRS.Length);
+                foreach (var it in fileRS)
                 {
                     if (!it.complete)
                     {
-                        SetState(DownState.Fail, "下载不完全");
+                        option.core.SetState(DownState.Fail, "下载不完全");
                         return null;
                     }
-                    _files.Add(it.path);
+                    files.Add(it.path);
                 }
-                string path = _files.CombineMultipleFilesIntoSingleFile(SaveFullName, WorkPath);
-                SetState(DownState.Complete);
+                var path = files.CombineMultipleFilesIntoSingleFile(option.SaveFullName, option.WorkPath);
+                option.core.SetState(DownState.Complete, null);
                 return path;
             }
             return null;
         }
 
-        void DownOne(FilesResult item, bool can_range, ref bool is_stop)
+        static void DownLoadSingle(HttpDownOption option, FilesResult item, ref bool is_stop)
         {
-            long _downvalueTemp = 0;
-            bool runTask = true;
+            long DownValue = 0;
+            bool RunTask = true;
             int ErrCount = 0;
-            while (runTask)
+            while (RunTask)
             {
                 try
                 {
-                    long fileLong = 0;
-
+                    long PreFileLength = 0;
                     using (var file = new FileStream(item.path, FileMode.OpenOrCreate))
                     {
-                        fileLong = file.Length;
+                        PreFileLength = file.Length;
                         if (item.end_position > 0 && file.Length >= item.end_position)
                         {
                             item.complete = true;
-                            _downvalueTemp += fileLong;
-                            ValTemp[item.i] = MaxValTemp[item.i] = fileLong;
-                            SetMaxValue();
-                            SetValue();
+                            DownValue += PreFileLength;
+                            option.core.SetMaxValue(item.i, PreFileLength);
+                            option.core.SetValue(item.i, DownValue);
                             return;
                         }
-                        else if (!can_range)
+                        else if (!option.CanRange)
                         {
                             file.Close();
-                            fileLong = 0;
+                            PreFileLength = 0;
                             File.Delete(item.path);
                         }
                     }
 
                     using (var file = new FileStream(item.path, FileMode.OpenOrCreate))
                     {
-                        var request = core.CreateRequest();
-                        if (can_range) request.AddRange((long)(item.start_position + file.Length), (long)(item.start_position + item.end_position));
-                        using (var p = (HttpWebResponse)request.GetResponse())
+                        var request = option.core.core.CreateRequest();
+                        if (option.CanRange) request.AddRange(item.start_position + file.Length, item.start_position + item.end_position);
+                        using (var response = (HttpWebResponse)request.GetResponse())
                         {
                             ErrCount = 0;
-                            if (p.ContentLength > 0)
+                            if (response.ContentLength > 0)
                             {
-                                if (file.Length >= p.ContentLength)
+                                if (file.Length >= response.ContentLength)
                                 {
-                                    fileLong = p.ContentLength;
                                     item.complete = true;
-                                    _downvalueTemp += fileLong;
-                                    ValTemp[item.i] = MaxValTemp[item.i] = fileLong;
-                                    SetMaxValue();
-                                    SetValue();
+                                    PreFileLength = response.ContentLength;
+                                    DownValue += PreFileLength;
+                                    option.core.SetMaxValue(item.i, PreFileLength);
+                                    option.core.SetValue(item.i, DownValue);
                                     return;
                                 }
                                 else
                                 {
-                                    if (!can_range) file.Seek(0, SeekOrigin.Begin);
-                                    MaxValTemp[item.i] = p.ContentLength;
-                                    SetMaxValue();
+                                    if (!option.CanRange) file.Seek(0, SeekOrigin.Begin);
+                                    option.core.SetMaxValue(item.i, response.ContentLength);
                                 }
                             }
-                            using (var stream = p.GetResponseStream())
+                            using (var stream = response.GetResponseStream())
                             {
-                                if (fileLong > 0)
+                                if (PreFileLength > 0)
                                 {
-                                    file.Seek(fileLong, SeekOrigin.Begin);
+                                    file.Seek(PreFileLength, SeekOrigin.Begin);
 
-                                    _downvalueTemp += fileLong;
-                                    ValTemp[item.i] = fileLong;
-                                    SetValue();
+                                    DownValue += PreFileLength;
+                                    option.core.SetValue(item.i, DownValue);
                                 }
-                                byte[] _cache = new byte[CacheSize];
-                                int osize = stream.Read(_cache, 0, _cache.Length);
+                                byte[] cache = new byte[option.core.CacheSize];
+                                int osize = stream.Read(cache, 0, cache.Length);
                                 while (osize > 0)
                                 {
-                                    _downvalueTemp += osize;
-                                    ValTemp[item.i] = _downvalueTemp;
-                                    SetValue();
+                                    DownValue += osize;
+                                    option.core.SetValue(item.i, DownValue);
                                     try
                                     {
-                                        resetState.WaitOne();
+                                        option.core.resetState.WaitOne();
                                     }
                                     catch
                                     {
@@ -319,12 +274,10 @@ namespace HttpLib
                                         is_stop = true;
                                         return;
                                     }
-                                    file.Write(_cache, 0, osize);
-                                    osize = stream.Read(_cache, 0, _cache.Length);
+                                    file.Write(cache, 0, osize);
+                                    osize = stream.Read(cache, 0, cache.Length);
                                 }
-
-                                ValTemp[item.i] = _downvalueTemp;
-                                SetValue();
+                                option.core.SetValue(item.i, DownValue);
                             }
                         }
                     }
@@ -334,10 +287,54 @@ namespace HttpLib
                 catch
                 {
                     ErrCount++;
-                    _downvalueTemp = 0;
-                    if (ErrCount > RetryCount) runTask = false;
+                    DownValue = 0;
+                    if (ErrCount > option.core.RetryCount) RunTask = false;
                 }
             }
+        }
+
+        /// <summary>
+        /// 计算速度
+        /// </summary>
+        static void TestTime(HttpDownOption option)
+        {
+            var tmp = new List<int>();
+            long oldsize = 0;
+            ITask.Run(() =>
+            {
+                while (option.core.State == DownState.Downloading || option.core.State == DownState.Stop)
+                {
+                    Thread.Sleep(1000);
+                    long _downsize = option.core.Value - oldsize;
+                    oldsize = option.core.Value;
+
+                    if (_downsize > 0)
+                    {
+                        int se = (int)((option.core.MaxValue - oldsize) / _downsize);
+                        if (se < 1)
+                        {
+                            option.core.SetTime(null);
+                            option.core.SetSpeed(_downsize);
+                        }
+                        else
+                        {
+                            tmp.Add(se);
+
+                            if (tmp.Count > 4)
+                            {
+                                int AVE = (int)Math.Ceiling(tmp.Average());
+                                tmp.Clear();
+                                TimeSpan timeSpan = new TimeSpan(0, 0, 0, AVE);
+                                string time_txt = $"{timeSpan.Hours.ToString().PadLeft(2, '0')}:{timeSpan.Minutes.ToString().PadLeft(2, '0')}:{timeSpan.Seconds.ToString().PadLeft(2, '0')}";
+                                if (time_txt.StartsWith("00:")) time_txt = time_txt.Substring(3);
+                                option.core.SetTime(time_txt);
+                            }
+                            option.core.SetSpeed(_downsize);
+                        }
+                    }
+                    else option.core.SetSpeed(0);
+                }
+            });
         }
 
         /// <summary>
@@ -347,7 +344,7 @@ namespace HttpLib
         /// <param name="can_range">是否可以分段</param>
         /// <param name="disposition"></param>
         /// <returns>真实长度</returns>
-        static long PreRequest(HttpDown core, out bool can_range, out string? disposition)
+        public static long PreRequest(HttpDown core, out bool can_range, out string? disposition)
         {
             disposition = null;
             try
@@ -383,9 +380,33 @@ namespace HttpLib
         #endregion
     }
 
-    public class FilesResult
+    internal class HttpDownOption
     {
-        public FilesResult(int _i, string _path, double s, double e)
+        public HttpDownOption(HttpDown c, int threadCount, string fileName, string savePath, string workPath, bool can_range)
+        {
+            core = c;
+            ThreadCount = threadCount;
+            SaveFullName = savePath + fileName;
+            WorkPath = workPath;
+            CanRange = can_range;
+        }
+
+        public HttpDown core { get; set; }
+
+        /// <summary>
+        /// 线程数量
+        /// </summary>
+        public int ThreadCount { get; set; }
+
+        public bool CanRange { get; set; }
+
+        public string SaveFullName { get; set; }
+        public string WorkPath { get; set; }
+    }
+
+    internal class FilesResult
+    {
+        public FilesResult(int _i, string _path, long s, long e)
         {
             i = _i;
             path = _path;
@@ -398,15 +419,16 @@ namespace HttpLib
         /// 文件保存地址
         /// </summary>
         public string path { get; set; }
+
         /// <summary>
         /// 文件开始位置
         /// </summary>
-        public double start_position { get; set; }
+        public long start_position { get; set; }
 
         /// <summary>
         /// 文件结束位置
         /// </summary>
-        public double end_position { get; set; }
+        public long end_position { get; set; }
 
         /// <summary>
         /// 是否下载完成

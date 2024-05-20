@@ -23,7 +23,6 @@ namespace HttpLib
         /// 保存路径
         /// </summary>
         public string SavePath { get; }
-        public string? SaveFullName { get; private set; }
 
         /// <summary>
         /// 超时时长
@@ -39,7 +38,6 @@ namespace HttpLib
         /// 下载缓存大小
         /// </summary>
         public int CacheSize = Config.CacheSize;
-        public string UserAgent = Config.UserAgent;
 
         /// <summary>
         /// 下载速度
@@ -54,51 +52,28 @@ namespace HttpLib
         /// <summary>
         /// 当前下载值
         /// </summary>
-        public double Value { get => _Value; }
+        public long Value { get => _Value; }
 
         /// <summary>
         /// 文件大小
         /// </summary>
-        public double MaxValue { get => _MaxValue; }
+        public long MaxValue { get => _MaxValue; }
 
         /// <summary>
         /// 任务状态
         /// </summary>
         public DownState State { get => _State; }
 
+
+        #region 非公开
+
         DownState _State = DownState.Ready;
         long _MaxValue, _Value, _Speed;
         string? _Time;
 
-        public enum DownState
-        {
-            /// <summary>
-            /// 准备中
-            /// </summary>
-            Ready,
-            /// <summary>
-            /// 下载中
-            /// </summary>
-            Downloading,
-            /// <summary>
-            /// 已停止
-            /// </summary>
-            Stop,
-            /// <summary>
-            /// 完成
-            /// </summary>
-            Complete,
-            /// <summary>
-            /// 异常
-            /// </summary>
-            Fail
-        }
-
-        #region 非公开
-
-        long[] ValTemp = new long[0];
-        long[] MaxValTemp = new long[0];
-        ManualResetEvent resetState = new ManualResetEvent(true);
+        long[] ValTmp = new long[0];
+        long[] MaxTmp = new long[0];
+        internal ManualResetEvent resetState = new ManualResetEvent(true);
 
         #endregion
 
@@ -111,18 +86,6 @@ namespace HttpLib
         #region 文件大小
 
         int DownCount = 0, TotalCount = 0;
-        void SetMaxValue(long value)
-        {
-            if (_MaxValue == value) return;
-            _MaxValue = value;
-            _MaxValueChange?.Invoke(value);
-        }
-        void SetMaxValue()
-        {
-            var val = MaxValTemp.Sum();
-            if (TotalCount > 0) SetMaxValue(val * TotalCount / DownCount);
-            else SetMaxValue(val);
-        }
 
         Action<long>? _MaxValueChange;
         /// <summary>
@@ -134,20 +97,31 @@ namespace HttpLib
             return this;
         }
 
+        void SetMaxValue(long value)
+        {
+            if (_MaxValue == value) return;
+            _MaxValue = value;
+            _MaxValueChange?.Invoke(value);
+        }
+
+        void SetMaxValue()
+        {
+            var val = MaxTmp.Sum();
+            if (TotalCount > 0) SetMaxValue(val * TotalCount / DownCount);
+            else SetMaxValue(val);
+        }
+
+        internal void SetMaxValue(int i, long value)
+        {
+            MaxTmp[i] = value;
+            var val = MaxTmp.Sum();
+            if (TotalCount > 0) SetMaxValue(val * TotalCount / DownCount);
+            else SetMaxValue(val);
+        }
+
         #endregion
 
         #region 当前下载值
-
-        void SetValue(long value)
-        {
-            if (_Value == value) return;
-            _Value = value;
-            _ValueChange?.Invoke(value);
-        }
-        void SetValue()
-        {
-            SetValue(ValTemp.Sum());
-        }
 
         Action<long>? _ValueChange;
         /// <summary>
@@ -159,18 +133,22 @@ namespace HttpLib
             return this;
         }
 
+        void SetValue(long value)
+        {
+            if (_Value == value) return;
+            _Value = value;
+            _ValueChange?.Invoke(value);
+        }
+
+        internal void SetValue(int i, long value)
+        {
+            ValTmp[i] = value;
+            SetValue(ValTmp.Sum());
+        }
+
         #endregion
 
         #region 下载速度
-
-        bool canSpeed = true;
-        void SetSpeed(long value)
-        {
-            if (!canSpeed) return;
-            if (_Speed == value) return;
-            _Speed = value;
-            _SpeedChange?.Invoke(value);
-        }
 
         Action<long>? _SpeedChange;
         /// <summary>
@@ -182,17 +160,18 @@ namespace HttpLib
             return this;
         }
 
+        internal bool CanSpeed = true;
+        internal void SetSpeed(long value)
+        {
+            if (!CanSpeed) return;
+            if (_Speed == value) return;
+            _Speed = value;
+            _SpeedChange?.Invoke(value);
+        }
+
         #endregion
 
         #region 剩余时间
-
-        void SetTime(string? value)
-        {
-            if (!canSpeed) return;
-            if (_Time == value) return;
-            _Time = value;
-            _TimeChange?.Invoke(value);
-        }
 
         Action<string?>? _TimeChange;
         /// <summary>
@@ -204,16 +183,17 @@ namespace HttpLib
             return this;
         }
 
+        internal void SetTime(string? value)
+        {
+            if (!CanSpeed) return;
+            if (_Time == value) return;
+            _Time = value;
+            _TimeChange?.Invoke(value);
+        }
+
         #endregion
 
         #region 任务状态
-
-        void SetState(DownState value, string? err = null)
-        {
-            if (_State == value) return;
-            _State = value;
-            _StateChange?.Invoke(value, err);
-        }
 
         Action<DownState, string?>? _StateChange;
         /// <summary>
@@ -225,6 +205,13 @@ namespace HttpLib
             return this;
         }
 
+        internal void SetState(DownState value, string? err = null)
+        {
+            if (_State == value) return;
+            _State = value;
+            _StateChange?.Invoke(value, err);
+        }
+
         #endregion
 
         #endregion
@@ -233,14 +220,39 @@ namespace HttpLib
 
         public Uri Uri;
         public HttpCore core;
-        public HttpDown(HttpCore _core, string _savePath)
+        public HttpDown(HttpCore _core, string _savePath, string? id = null)
         {
             core = _core;
             Uri = core.option.uri;
+            ID = id;
             SavePath = _savePath.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             Url = core.option.uri.AbsoluteUri;
         }
 
         #endregion
+    }
+
+    public enum DownState
+    {
+        /// <summary>
+        /// 准备中
+        /// </summary>
+        Ready,
+        /// <summary>
+        /// 下载中
+        /// </summary>
+        Downloading,
+        /// <summary>
+        /// 已停止
+        /// </summary>
+        Stop,
+        /// <summary>
+        /// 完成
+        /// </summary>
+        Complete,
+        /// <summary>
+        /// 异常
+        /// </summary>
+        Fail
     }
 }

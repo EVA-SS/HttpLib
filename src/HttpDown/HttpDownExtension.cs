@@ -3,11 +3,14 @@
     public static class HttpDownExtension
     {
         /// <summary>
-        /// 下载
+        /// 下载（多线程）
         /// </summary>
-        public static HttpDown downLoad(this HttpCore core, string savePath)
+        /// <param name="core">核心</param>
+        /// <param name="savePath">保存路径</param>
+        /// <param name="id">任务id</param>
+        public static HttpDown downLoad(this HttpCore core, string savePath, string? id = null)
         {
-            return new HttpDown(core, savePath);
+            return new HttpDown(core, savePath, id);
         }
     }
 }

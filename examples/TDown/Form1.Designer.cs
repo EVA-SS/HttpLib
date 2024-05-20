@@ -75,17 +75,15 @@ namespace TDown
             // 
             // txt_uri
             // 
-            txt_uri.Back = System.Drawing.Color.Transparent;
             txt_uri.BackColor = System.Drawing.Color.Transparent;
             txt_uri.BorderWidth = 0F;
             txt_uri.Dock = System.Windows.Forms.DockStyle.Fill;
-            txt_uri.Fore = System.Drawing.Color.White;
             txt_uri.ForeColor = System.Drawing.Color.White;
             txt_uri.Location = new System.Drawing.Point(0, 0);
             txt_uri.Name = "txt_uri";
             txt_uri.Size = new System.Drawing.Size(730, 38);
             txt_uri.TabIndex = 1;
-            txt_uri.Text = "https://github.com/Haku-Men/HttpLib.git";
+            txt_uri.Text = "https://codeload.github.com/EVA-SS/HttpLib/zip/refs/heads/main";
             // 
             // textBox2
             // 

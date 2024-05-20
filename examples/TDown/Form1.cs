@@ -25,13 +25,12 @@ namespace TDown
                 progress.Loading = true;
                 DateTime start_time = DateTime.Now;
                 txt_start_time.Text = start_time.ToString("HH:mm:ss");
-                down = Http.Get(downUrl).redirect().downLoad(Program.BasePath);
-                down.ID = MD5Encrypt16(downUrl);
+                down = Http.Get(downUrl).redirect().downLoad(Program.BasePath, MD5Encrypt16(downUrl));
                 btn.Enabled = btn_resume.Enabled = false;
                 btn_suspend.Enabled = btn_stop.Enabled = true;
                 down.ValueChange(t =>
                 {
-                    double prog = t / down.MaxValue;
+                    double prog = (t * 1.0) / down.MaxValue;
                     if (down.MaxValue > t)
                     {
                         progress.Value = (float)prog;
@@ -56,19 +55,19 @@ namespace TDown
                 {
                     switch (t)
                     {
-                        case HttpDown.DownState.Complete:
+                        case DownState.Complete:
                             txt_state.State = AntdUI.TState.Success;
                             txt_state.Text = "完成 " + err;
                             break;
-                        case HttpDown.DownState.Downloading:
+                        case DownState.Downloading:
                             txt_state.State = AntdUI.TState.Processing;
                             txt_state.Text = "下载中";
                             break;
-                        case HttpDown.DownState.Fail:
+                        case DownState.Fail:
                             txt_state.State = AntdUI.TState.Error;
                             txt_state.Text = "异常";
                             break;
-                        case HttpDown.DownState.Stop:
+                        case DownState.Stop:
                             txt_state.State = AntdUI.TState.Warn;
                             txt_state.Text = "已停止 " + err;
                             break;
