@@ -95,6 +95,14 @@ namespace HttpLib
 
         public static string FileNameDisposition(this string disposition)
         {
+            if (disposition.Contains("filename*=UTF-8"))
+            {
+                try
+                {
+                    return Uri.UnescapeDataString(disposition.Substring(disposition.IndexOf("filename*=UTF-8") + 15).Trim('\''));
+                }
+                catch { }
+            }
             var cd = new ContentDisposition(disposition);
             return cd.FileName;
         }
@@ -119,6 +127,7 @@ namespace HttpLib
         {
             if (files.Count == 1)
             {
+                if (File.Exists(filePath)) File.Delete(filePath);
                 File.Move(files[0], filePath);
                 //删除临时文件夹
                 WorkPath.DeleteDirectory();

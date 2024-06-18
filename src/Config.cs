@@ -140,7 +140,7 @@ namespace HttpLib
         /// <summary>
         /// 重试次数
         /// </summary>
-        public static int RetryCount = 6;
+        public static int RetryCount = 3;
         /// <summary>
         /// 超时时长
         /// </summary>

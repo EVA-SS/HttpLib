@@ -166,7 +166,24 @@ namespace HttpLib
                 }
                 tasks.Add(ITask.Run(() =>
                 {
-                    DownLoadSingle(option, it, ref is_stop);
+                    int ErrCount = 0;
+                    while (true)
+                    {
+                        if (DownLoadSingle(option, it, ref is_stop, out var err))
+                        {
+                            it.error = false;
+                            it.errmsg = null;
+                            return;
+                        }
+                        else
+                        {
+                            ErrCount++;
+                            it.errmsg = err;
+                            it.error = true;
+                            if (ErrCount > option.core.RetryCount) return;
+                            else Thread.Sleep(1000);
+                        }
+                    }
                 }));
                 if (tasks.Count > option.ThreadCount)
                 {
@@ -179,118 +196,121 @@ namespace HttpLib
             if (is_stop) option.core.SetState(DownState.Complete, "主动停止");
             else
             {
-                var files = new List<string>(fileRS.Length);
+                var errors = new List<string>(1);
+                int errorcount = 0;
                 foreach (var it in fileRS)
                 {
-                    if (!it.complete)
+                    if (it.error)
                     {
-                        option.core.SetState(DownState.Fail, "下载不完全");
-                        return null;
+                        errorcount++;
+                        if (it.errmsg != null && !errors.Contains(it.errmsg)) errors.Add(it.errmsg);
                     }
-                    files.Add(it.path);
                 }
-                var path = files.CombineMultipleFilesIntoSingleFile(option.SaveFullName, option.WorkPath);
-                option.core.SetState(DownState.Complete, null);
-                return path;
+                if (errorcount > 0)
+                {
+                    if (errors.Count > 0) option.core.SetState(DownState.Fail, string.Join(" ", errors));
+                    else option.core.SetState(DownState.Fail, "下载不完全");
+                    return null;
+                }
+                var files = new List<string>(fileRS.Length);
+                foreach (var it in fileRS) files.Add(it.path);
+                try
+                {
+                    var path = files.CombineMultipleFilesIntoSingleFile(option.SaveFullName, option.WorkPath);
+                    option.core.SetState(DownState.Complete, null);
+                    return path;
+                }
+                catch (Exception ez) { option.core.SetState(DownState.Fail, ez.Message); return null; }
             }
             return null;
         }
 
-        static void DownLoadSingle(HttpDownOption option, FilesResult item, ref bool is_stop)
+        static bool DownLoadSingle(HttpDownOption option, FilesResult item, ref bool is_stop, out string? error)
         {
             long DownValue = 0;
-            bool RunTask = true;
-            int ErrCount = 0;
-            while (RunTask)
+            error = null;
+            try
             {
-                try
+                long PreFileLength = 0;
+                using (var file = new FileStream(item.path, FileMode.OpenOrCreate))
                 {
-                    long PreFileLength = 0;
-                    using (var file = new FileStream(item.path, FileMode.OpenOrCreate))
+                    PreFileLength = file.Length;
+                    if (item.end_position > 0 && file.Length >= item.end_position)
                     {
-                        PreFileLength = file.Length;
-                        if (item.end_position > 0 && file.Length >= item.end_position)
-                        {
-                            item.complete = true;
-                            DownValue += PreFileLength;
-                            option.core.SetMaxValue(item.i, PreFileLength);
-                            option.core.SetValue(item.i, DownValue);
-                            return;
-                        }
-                        else if (!option.CanRange)
-                        {
-                            file.Close();
-                            PreFileLength = 0;
-                            File.Delete(item.path);
-                        }
+                        DownValue += PreFileLength;
+                        option.core.SetMaxValue(item.i, PreFileLength);
+                        option.core.SetValue(item.i, DownValue);
+                        return true;
                     }
-
-                    using (var file = new FileStream(item.path, FileMode.OpenOrCreate))
+                    else if (!option.CanRange)
                     {
-                        var request = option.core.core.CreateRequest();
-                        if (option.CanRange) request.AddRange(item.start_position + file.Length, item.start_position + item.end_position);
-                        using (var response = (HttpWebResponse)request.GetResponse())
-                        {
-                            ErrCount = 0;
-                            if (response.ContentLength > 0)
-                            {
-                                if (file.Length >= response.ContentLength)
-                                {
-                                    item.complete = true;
-                                    PreFileLength = response.ContentLength;
-                                    DownValue += PreFileLength;
-                                    option.core.SetMaxValue(item.i, PreFileLength);
-                                    option.core.SetValue(item.i, DownValue);
-                                    return;
-                                }
-                                else
-                                {
-                                    if (!option.CanRange) file.Seek(0, SeekOrigin.Begin);
-                                    option.core.SetMaxValue(item.i, response.ContentLength);
-                                }
-                            }
-                            using (var stream = response.GetResponseStream())
-                            {
-                                if (PreFileLength > 0)
-                                {
-                                    file.Seek(PreFileLength, SeekOrigin.Begin);
+                        file.Close();
+                        PreFileLength = 0;
+                        File.Delete(item.path);
+                    }
+                }
 
-                                    DownValue += PreFileLength;
-                                    option.core.SetValue(item.i, DownValue);
-                                }
-                                byte[] cache = new byte[option.core.CacheSize];
-                                int osize = stream.Read(cache, 0, cache.Length);
-                                while (osize > 0)
-                                {
-                                    DownValue += osize;
-                                    option.core.SetValue(item.i, DownValue);
-                                    try
-                                    {
-                                        option.core.resetState.WaitOne();
-                                    }
-                                    catch
-                                    {
-                                        //下载终止
-                                        is_stop = true;
-                                        return;
-                                    }
-                                    file.Write(cache, 0, osize);
-                                    osize = stream.Read(cache, 0, cache.Length);
-                                }
+                using (var file = new FileStream(item.path, FileMode.OpenOrCreate))
+                {
+                    var request = option.core.core.CreateRequest();
+                    if (option.CanRange) request.AddRange(item.start_position + file.Length, item.start_position + item.end_position);
+                    using (var response = (HttpWebResponse)request.GetResponse())
+                    {
+                        if (response.ContentLength > 0)
+                        {
+                            if (file.Length >= response.ContentLength)
+                            {
+                                PreFileLength = response.ContentLength;
+                                DownValue += PreFileLength;
+                                option.core.SetMaxValue(item.i, PreFileLength);
+                                option.core.SetValue(item.i, DownValue);
+                                return true;
+                            }
+                            else
+                            {
+                                if (!option.CanRange) file.Seek(0, SeekOrigin.Begin);
+                                option.core.SetMaxValue(item.i, response.ContentLength);
+                            }
+                        }
+                        using (var stream = response.GetResponseStream())
+                        {
+                            if (PreFileLength > 0)
+                            {
+                                file.Seek(PreFileLength, SeekOrigin.Begin);
+
+                                DownValue += PreFileLength;
                                 option.core.SetValue(item.i, DownValue);
                             }
+                            byte[] cache = new byte[option.core.CacheSize];
+                            int osize = stream.Read(cache, 0, cache.Length);
+                            while (osize > 0)
+                            {
+                                DownValue += osize;
+                                option.core.SetValue(item.i, DownValue);
+                                try
+                                {
+                                    option.core.resetState.WaitOne();
+                                }
+                                catch
+                                {
+                                    //下载终止
+                                    is_stop = true;
+                                    return false;
+                                }
+                                file.Write(cache, 0, osize);
+                                osize = stream.Read(cache, 0, cache.Length);
+                            }
+                            option.core.SetValue(item.i, DownValue);
                         }
                     }
-                    item.complete = true;
-                    return;
                 }
-                catch
-                {
-                    ErrCount++;
-                    DownValue = 0;
-                    if (ErrCount > option.core.RetryCount) RunTask = false;
-                }
+                return true;
             }
+            catch (Exception err)
+            {
+                error = err.Message;
+            }
+            return false;
         }
 
         /// <summary>
@@ -430,9 +450,7 @@ namespace HttpLib
         /// </summary>
         public long end_position { get; set; }
 
-        /// <summary>
-        /// 是否下载完成
-        /// </summary>
-        public bool complete { get; set; }
+        public bool error { get; set; }
+        public string? errmsg { get; set; }
     }
 }

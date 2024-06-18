@@ -580,7 +580,7 @@ namespace HttpLib
                             if (countB == 0) writeDATA.Add(startbyteOnes);
                             else writeDATA.Add(startbytes);
                             countB++;
-                            string separator = string.Format("Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}", it.Key, Uri.EscapeDataString(it.Value));
+                            string separator = string.Format("Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}", it.Key, it.Value);
                             writeDATA.Add(encoding.GetBytes(separator));
                         }
                     }
