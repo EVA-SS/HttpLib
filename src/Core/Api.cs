@@ -138,13 +138,14 @@ namespace HttpLib
                 using (var AddWriter = new BinaryWriter(MergeFile))
                 {
                     //按序号排序
-                    for (int i = 0; i < files.Count; i++)
+                    int i = 0;
+                    foreach (string file in files)
                     {
-                        using (var fs = new FileStream(files[i], FileMode.Open))
+                        i++;
+                        using (var fs = new FileStream(file, FileMode.Open))
                         {
                             using (var tmp = new BinaryReader(fs))
                             {
-                                //由于一个文件拆分成多个文件时，每个文件最后都会拼接上结尾符"\0"，导致总长度多出(n-1)个字符，需要需要针对前面(n-1)个文件去除最后的"\0"。
                                 if (i == files.Count) AddWriter.Write(tmp.ReadBytes((int)fs.Length));
                                 else AddWriter.Write(tmp.ReadBytes((int)fs.Length - 1));
                             }

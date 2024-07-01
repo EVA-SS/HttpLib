@@ -100,7 +100,7 @@ namespace HttpLib
         {
             string WorkPath = SavePath + (ID ?? Guid.NewGuid().ToString()) + Path.DirectorySeparatorChar;
             WorkPath.CreateDirectory();
-            long Length = HttpDownLib.PreRequest(this, out bool can_range, out var disposition);
+            long Length = HttpDownLib.PreRequest(this, ThreadCount, out bool can_range, out var disposition);
             FileName ??= Uri.FileName(disposition);
             TotalCount = DownCount = 0;
 
@@ -364,7 +364,7 @@ namespace HttpLib
         /// <param name="can_range">是否可以分段</param>
         /// <param name="disposition"></param>
         /// <returns>真实长度</returns>
-        public static long PreRequest(HttpDown core, out bool can_range, out string? disposition)
+        public static long PreRequest(HttpDown core, int ThreadCount, out bool can_range, out string? disposition)
         {
             disposition = null;
             try
@@ -373,7 +373,7 @@ namespace HttpLib
                 var request = core.core.requestNone();
                 if (request.Header.ContainsKey("Content-Disposition")) disposition = request.Header["Content-Disposition"];
                 var ReadLength = request.Size;
-                if (ReadLength > 0)
+                if (ThreadCount > 1 && ReadLength > 0)
                 {
                     try
                     {
