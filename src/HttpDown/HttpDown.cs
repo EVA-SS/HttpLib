@@ -151,20 +151,17 @@ namespace HttpLib
             option.core.CanSpeed = true;
             TestTime(option);
             bool is_stop = false;
-            var tasks = new List<Task>(fileRS.Length);
+            var taskList = new List<Task>(fileRS.Length);
+            var taskTmp = new List<Task>(fileRS.Length);
             foreach (var it in fileRS)
             {
-                try
-                {
-                    option.core.resetState.WaitOne();
-                }
-                catch
+                if (option.core.resetState.Wait())
                 {
                     is_stop = true;
                     option.core.SetState(DownState.Complete, "主动停止");
                     return null;
                 }
-                tasks.Add(ITask.Run(() =>
+                var task = ITask.Run(() =>
                 {
                     int ErrCount = 0;
                     while (true)
@@ -184,14 +181,16 @@ namespace HttpLib
                             else Thread.Sleep(1000);
                         }
                     }
-                }));
-                if (tasks.Count > option.ThreadCount)
+                });
+                taskList.Add(task);
+                taskTmp.Add(task);
+                if (taskTmp.Count > option.ThreadCount)
                 {
-                    Task.WaitAny(tasks.ToArray());
-                    tasks = tasks.Where(t => t.Status == TaskStatus.Running).ToList();
+                    Task.WaitAny(taskTmp.ToArray());
+                    taskTmp = taskTmp.Where(t => t.Status == TaskStatus.Running).ToList();
                 }
             }
-            Task.WaitAll(tasks.ToArray());
+            Task.WaitAll(taskList.ToArray());
             option.core.CanSpeed = false;
             if (is_stop) option.core.SetState(DownState.Complete, "主动停止");
             else
@@ -227,25 +226,23 @@ namespace HttpLib
 
         static bool DownLoadSingle(HttpDownOption option, FilesResult item, ref bool is_stop, out string? error)
         {
-            long DownValue = 0;
             error = null;
             try
             {
                 long PreFileLength = 0;
                 using (var file = new FileStream(item.path, FileMode.OpenOrCreate))
                 {
-                    PreFileLength = file.Length;
                     if (item.end_position > 0 && file.Length >= item.end_position)
                     {
-                        DownValue += PreFileLength;
+                        PreFileLength = item.end_position;
                         option.core.SetMaxValue(item.i, PreFileLength);
-                        option.core.SetValue(item.i, DownValue);
+                        option.core.SetValue(item.i, PreFileLength);
                         return true;
                     }
-                    else if (!option.CanRange)
+                    else if (option.CanRange) PreFileLength = file.Length;
+                    else
                     {
                         file.Close();
-                        PreFileLength = 0;
                         File.Delete(item.path);
                     }
                 }
@@ -253,31 +250,16 @@ namespace HttpLib
                 using (var file = new FileStream(item.path, FileMode.OpenOrCreate))
                 {
                     var request = option.core.core.CreateRequest();
-                    if (option.CanRange) request.AddRange(item.start_position + file.Length, item.start_position + item.end_position);
+                    if (option.CanRange) request.AddRange(item.start_position + PreFileLength, item.start_position + item.end_position);
                     using (var response = (HttpWebResponse)request.GetResponse())
                     {
-                        if (response.ContentLength > 0)
-                        {
-                            if (file.Length >= response.ContentLength)
-                            {
-                                PreFileLength = response.ContentLength;
-                                DownValue += PreFileLength;
-                                option.core.SetMaxValue(item.i, PreFileLength);
-                                option.core.SetValue(item.i, DownValue);
-                                return true;
-                            }
-                            else
-                            {
-                                if (!option.CanRange) file.Seek(0, SeekOrigin.Begin);
-                                option.core.SetMaxValue(item.i, response.ContentLength);
-                            }
-                        }
+                        if (response.ContentLength > 0) option.core.SetMaxValue(item.i, PreFileLength + response.ContentLength);
                         using (var stream = response.GetResponseStream())
                         {
+                            long DownValue = 0;
                             if (PreFileLength > 0)
                             {
                                 file.Seek(PreFileLength, SeekOrigin.Begin);
-
                                 DownValue += PreFileLength;
                                 option.core.SetValue(item.i, DownValue);
                             }
@@ -287,13 +269,8 @@ namespace HttpLib
                             {
                                 DownValue += osize;
                                 option.core.SetValue(item.i, DownValue);
-                                try
+                                if (option.core.resetState.Wait())
                                 {
-                                    option.core.resetState.WaitOne();
-                                }
-                                catch
-                                {
-                                    //下载终止
                                     is_stop = true;
                                     return false;
                                 }

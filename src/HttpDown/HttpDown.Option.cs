@@ -113,6 +113,7 @@ namespace HttpLib
 
         internal void SetMaxValue(int i, long value)
         {
+            if (MaxTmp[i] == value) return;
             MaxTmp[i] = value;
             var val = MaxTmp.Sum();
             if (TotalCount > 0) SetMaxValue(val * TotalCount / DownCount);

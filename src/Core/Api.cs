@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Mime;
+using System.Threading;
 
 namespace HttpLib
 {
@@ -156,6 +157,31 @@ namespace HttpLib
                 WorkPath.DeleteDirectory();
             }
             return filePath;
+        }
+
+        public static bool Wait(this WaitHandle handle)
+        {
+            try
+            {
+                handle.WaitOne();
+                return false;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+        public static bool Wait(this CancellationTokenSource? token)
+        {
+            try
+            {
+                if (token == null || token.IsCancellationRequested) return true;
+                return false;
+            }
+            catch
+            {
+                return true;
+            }
         }
     }
 }
