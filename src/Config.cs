@@ -82,10 +82,7 @@ namespace HttpLib
         /// </summary>
         public static event ErrEventHandler? fail;
 
-        public static void OnFail(HttpCore core, ResultResponse result)
-        {
-            fail?.Invoke(core, result);
-        }
+        public static void OnFail(HttpCore core, ResultResponse result) => fail?.Invoke(core, result);
 
         #endregion
 
@@ -97,28 +94,19 @@ namespace HttpLib
         /// 全局代理
         /// </summary>
         /// <param name="address">代理服务器的 URI</param>
-        public static void proxy(string address)
-        {
-            _proxy = new WebProxy(address);
-        }
+        public static void proxy(string address) => _proxy = new WebProxy(address);
         /// <summary>
         /// 全局代理
         /// </summary>
         /// <param name="address">代理服务器的 URI</param>
-        public static void proxy(Uri address)
-        {
-            _proxy = new WebProxy(address);
-        }
+        public static void proxy(Uri address) => _proxy = new WebProxy(address);
 
         /// <summary>
         /// 全局代理
         /// </summary>
         /// <param name="host">代理主机的名称</param>
         /// <param name="port">要使用的 Host 上的端口号</param>
-        public static void proxy(string host, int port)
-        {
-            _proxy = new WebProxy(host, port);
-        }
+        public static void proxy(string host, int port) => _proxy = new WebProxy(host, port);
 
         /// <summary>
         /// 全局代理

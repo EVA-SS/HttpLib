@@ -17,21 +17,18 @@ namespace HttpLib
         /// <summary>
         /// 下载-自动
         /// </summary>
-        public Task<string?> Go()
-        { return Go(Environment.ProcessorCount, null); }
+        public Task<string?> Go() => Go(Environment.ProcessorCount, null);
 
         /// <summary>
         /// 下载-自定义下载线程数
         /// </summary>
-        public Task<string?> Go(int ThreadCount)
-        { return Go(ThreadCount, null); }
+        public Task<string?> Go(int ThreadCount) => Go(ThreadCount, null);
 
         /// <summary>
         /// 下载-自定义保存文件名称
         /// </summary>
         /// <param name="FileName"></param>
-        public Task<string?> Go(string FileName)
-        { return Go(Environment.ProcessorCount, FileName); }
+        public Task<string?> Go(string FileName) => Go(Environment.ProcessorCount, FileName);
 
         #endregion
 
@@ -79,10 +76,7 @@ namespace HttpLib
 
         #endregion
 
-        public override string ToString()
-        {
-            return Url;
-        }
+        public override string ToString() => Url;
 
         /// <summary>
         /// 停止下载

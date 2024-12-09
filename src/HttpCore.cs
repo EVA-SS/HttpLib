@@ -64,10 +64,7 @@ namespace HttpLib
         public HttpCore query(IDictionary<string, string> vals)
         {
             option.query ??= new List<Val>(vals.Count);
-            foreach (var it in vals)
-            {
-                option.query.Add(new Val(it.Key, it.Value));
-            }
+            foreach (var it in vals) option.query.Add(new Val(it.Key, it.Value));
             return this;
         }
 
@@ -135,10 +132,7 @@ namespace HttpLib
         public HttpCore data(IDictionary<string, string> vals)
         {
             option.data ??= new List<Val>(vals.Count);
-            foreach (var it in vals)
-            {
-                option.data.Add(new Val(it.Key, it.Value));
-            }
+            foreach (var it in vals) option.data.Add(new Val(it.Key, it.Value));
             return this;
         }
 
@@ -286,14 +280,23 @@ namespace HttpLib
         /// <summary>
         /// 请求头
         /// </summary>
+        /// <param name="key">键</param>
+        /// <param name="val">值</param>
+        public HttpCore header(string key, long val)
+        {
+            if (option.header == null) option.header = new List<Val> { new Val(key, val) };
+            else option.header.Add(new Val(key, val));
+            return this;
+        }
+
+        /// <summary>
+        /// 请求头
+        /// </summary>
         /// <param name="vals">多个参数</param>
         public HttpCore header(IDictionary<string, string> vals)
         {
             option.header ??= new List<Val>(vals.Count);
-            foreach (var it in vals)
-            {
-                option.header.Add(new Val(it.Key, it.Value));
-            }
+            foreach (var it in vals) option.header.Add(new Val(it.Key, it.Value));
             return this;
         }
 
@@ -455,7 +458,7 @@ namespace HttpLib
         {
             public CacheModel(string _id)
             {
-                if (Config.CacheFolder == null) throw new Exception("先配置\"Config.CachePath\"");
+                if (Config.CacheFolder == null) throw new Exception("先配置 \"Config.CachePath\"");
                 path = Config.CacheFolder;
                 id = _id;
                 file = path + _id;

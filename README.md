@@ -3,16 +3,31 @@
 如果你喜欢 HttpLib 项目，请为本项点亮一颗星 ⭐！
 
 
-[![NuGet](https://img.shields.io/nuget/v/Tom.HttpLib.svg?style=for-the-badge&label=Tom.HttpLib&logo=nuget)](https://www.nuget.org/packages/Tom.HttpLib)
-[![Download](https://img.shields.io/nuget/dt/Tom.HttpLib?style=for-the-badge)](https://www.nuget.org/packages/Tom.HttpLib)
+[![NuGet](https://img.shields.io/nuget/vpre/tom.httpLib?style=flat-square&logo=nuget&label=HttpLib)](https://www.nuget.org/packages/Tom.HttpLib)
+[![Download](https://img.shields.io/nuget/dt/Tom.HttpLib?style=flat-square)](https://www.nuget.org/packages/Tom.HttpLib)
+
+## 🖥支持环境
+- .NET 6.0及以上。
+- .NET Core3.1及以上。
+- .NET Standard2.0及以上。
+
+## 🌴支持
+
+#### multipart/form-data
+
+既可以上传文件等二进制数据，也可以上传表单键值对
+
+#### 上传与下载进度回调
+
+上传与下载的进度监控
+
+#### 支持缓存
+
+类似图片加载场景，同一个id的图片通过磁盘存储减少网络开支
+
 
 ****
 
-|作者|Tom|
-|:--:|:--:|
-|QQ|17379620|
-
-****
 ## 目录
 * [示例](#示例)
     * [创建请求](#创建请求)
@@ -22,6 +37,7 @@
     * [启用重定向](#启用重定向)
     * [设置超时时长](#设置超时时长)
     * [设置编码](#设置编码)
+    * [设置缓存](#设置缓存)
     * [请求之前处理](#请求之前处理)
     * [注入回调获取进度](#注入回调获取进度)
         * [上传](#上传)
@@ -53,14 +69,23 @@ Http.Put("https://www.baidu.com")
 Http.Delete("https://www.baidu.com")
 ```
 ### 添加参数
->GET请求参数会自动注入到地址
+
+> GET请求参数会自动注入到地址
+
 ``` csharp
+data("wd", "随便搜一下")
 data(new { test1 = "测试1", test2 = "测试2" })
 data(new { params_ = "关键字参数" })
 data(new { wd = new string[] { "GitHub - Haku-Men HttpLib", "POST数组参数" } })
-query(new { test = "POST下继续传递URL参数" })
-query(new Val("test", "POST下继续传递URL参数1"))
 ```
+
+> URL参数（除了GET请求）
+
+``` csharp
+query("键", "值对")
+query(new { test = "POST下继续传递URL参数" })
+```
+
 ``` csharp
 data(new Val("test1", "测试1"), new Val("test2", "测试2"))
 ```
@@ -70,34 +95,65 @@ data(new List<Val> {
 	new Val("test2","测试2")
 })
 ```
+
+> 上传字符串 默认 `text/plain`
+
+``` csharp
+string json = "{\"JSON\":\"json data\"}";
+datastr(json, "application/json")
+```
+
+> 上传文件
+
 ``` csharp
 data(new Files("文件地址"))
 ```
+``` csharp
+file(@"文件地址")
+```
+
 ### 添加请求头
+``` csharp
+header("Authorization", "abc")
+```
 ``` csharp
 header(new { accept = "*/*", userAgent = "Chrome" })
 ```
 ``` csharp
 header(new Val("accept","*/*"), new Val("user-agent","Chrome"))
 ```
+
 ### 设置代理
 ``` csharp
 proxy("127.0.0.1",1000)
 ```
+
 ### 启用重定向
 >默认禁止
 ``` csharp
 redirect()
 ```
+
 ### 设置超时时长
 >`毫秒`（默认不超时）
 ``` csharp
 timeout(3000)
 ```
+
 ### 设置编码
 >默认`utf-8`
 ``` csharp
 encoding('utf-8')
+```
+
+## 设置缓存
+>先配置`Config.CacheFolder`缓存文件夹
+``` csharp
+cache("缓存id")
+```
+>或者设定有效期 1分钟
+``` csharp
+cache("缓存id",1)
 ```
 
 ### 请求之前处理

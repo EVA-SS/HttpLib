@@ -55,6 +55,13 @@ namespace HttpLib
 
         #region 请求
 
+        Action<HttpWebRequest> action_Request = null;
+        public HttpCore webrequest(Action<HttpWebRequest> action)
+        {
+            action_Request = action;
+            return this;
+        }
+
         Func<HttpWebResponse, ResultResponse, bool> action_before = null;
         /// <summary>
         /// 请求之前处理
@@ -100,7 +107,6 @@ namespace HttpLib
                 try
                 {
                     response.Close();
-
 #if !NET40
                     response.Dispose();
 #endif

@@ -94,7 +94,7 @@ namespace HttpLib
             return new string(chars);
         }
 
-        public static string FileNameDisposition(this string disposition)
+        public static string? FileNameDisposition(this string disposition)
         {
             if (disposition.Contains("filename*=UTF-8"))
             {
@@ -104,8 +104,7 @@ namespace HttpLib
                 }
                 catch { }
             }
-            var cd = new ContentDisposition(disposition);
-            return cd.FileName;
+            return new ContentDisposition(disposition).FileName;
         }
         public static string FileName(this Uri uri)
         {
@@ -115,7 +114,7 @@ namespace HttpLib
 
         public static string FileName(this Uri uri, string? disposition)
         {
-            if (disposition != null && !string.IsNullOrEmpty(disposition)) return disposition.FileNameDisposition();
+            if (disposition != null && !string.IsNullOrEmpty(disposition)) return disposition.FileNameDisposition() ?? uri.FileName();
             return uri.FileName();
         }
 

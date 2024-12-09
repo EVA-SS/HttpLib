@@ -174,6 +174,7 @@ namespace HttpLib
                 }
                 abort();
                 req = CreateRequest();
+                action_Request?.Invoke(req);
                 using (response = (HttpWebResponse)req.GetResponse())
                 {
                     var response_max = response.ContentLength;
@@ -248,6 +249,25 @@ namespace HttpLib
                     var web = new ResultResponse(response, err);
                     Config.OnFail(this, web);
                     action_fail?.Invoke(web);
+                    if (response.ContentLength > 0)
+                    {
+                        switch (resultMode)
+                        {
+                            case 1:
+                                using (var stream = response.GetResponseStream())
+                                {
+                                    var data = DownStream(response.ContentLength, web, stream, out _);
+                                    if (data == null) return new TaskResult(web);
+                                    else
+                                    {
+                                        var encodings = option.encoding;
+                                        if (encodings == null || option.autoencode) encodings = GetEncoding(response, data);
+                                        var result = encodings.GetString(data);
+                                        return new TaskResult(web, result);
+                                    }
+                                }
+                        }
+                    }
                     return new TaskResult(web);
                 }
                 else

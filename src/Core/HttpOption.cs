@@ -133,14 +133,11 @@ namespace HttpLib
             if (_web.Header.ContainsKey("Content-Disposition"))
             {
                 string val = _web.Header["Content-Disposition"];
-                if (!string.IsNullOrEmpty(val)) return val.FileNameDisposition();
+                if (!string.IsNullOrEmpty(val)) return val.FileNameDisposition() ?? uri.FileName();
             }
             return uri.FileName();
         }
 
-        public override string ToString()
-        {
-            return uri.AbsoluteUri;
-        }
+        public override string ToString() => uri.AbsoluteUri;
     }
 }

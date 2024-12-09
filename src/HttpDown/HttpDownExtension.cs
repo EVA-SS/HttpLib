@@ -8,9 +8,6 @@
         /// <param name="core">核心</param>
         /// <param name="savePath">保存路径</param>
         /// <param name="id">任务id</param>
-        public static HttpDown downLoad(this HttpCore core, string savePath, string? id = null)
-        {
-            return new HttpDown(core, savePath, id);
-        }
+        public static HttpDown downLoad(this HttpCore core, string savePath, string? id = null) => new HttpDown(core, savePath, id);
     }
 }

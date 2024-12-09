@@ -25,10 +25,7 @@ namespace HttpLib
         /// </summary>
         public string? Value { get; set; }
 
-        public override string ToString()
-        {
-            return Key + "=" + Value;
-        }
+        public override string ToString() => Key + "=" + Value;
 
         public string ToStringEscape()
         {

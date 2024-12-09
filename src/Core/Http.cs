@@ -30,78 +30,52 @@ namespace HttpLib
         /// GET 请求
         /// </summary>
         /// <param name="url">地址</param>
-        public static HttpCore Get(this string url)
-        {
-            return Core(url, HttpMethod.Get);
-        }
+        public static HttpCore Get(this string url) => Core(url, HttpMethod.Get);
+
         /// <summary>
         /// GET 请求
         /// </summary>
         /// <param name="url">地址</param>
-        public static HttpCore Get(this Uri url)
-        {
-            return Core(url, HttpMethod.Get);
-        }
+        public static HttpCore Get(this Uri url) => Core(url, HttpMethod.Get);
 
         /// <summary>
         /// POST 请求
         /// </summary>
         /// <param name="url">地址</param>
-        public static HttpCore Post(this string url)
-        {
-            return Core(url, HttpMethod.Post);
-        }
+        public static HttpCore Post(this string url) => Core(url, HttpMethod.Post);
+
         /// <summary>
         /// POST 请求
         /// </summary>
         /// <param name="url">地址</param>
-        public static HttpCore Post(this Uri url)
-        {
-            return Core(url, HttpMethod.Post);
-        }
+        public static HttpCore Post(this Uri url) => Core(url, HttpMethod.Post);
 
         /// <summary>
         /// Put 请求
         /// </summary>
         /// <param name="url">地址</param>
-        public static HttpCore Put(this string url)
-        {
-            return Core(url, HttpMethod.Put);
-        }
+        public static HttpCore Put(this string url) => Core(url, HttpMethod.Put);
+
         /// <summary>
         /// Put 请求
         /// </summary>
         /// <param name="url">地址</param>
-        public static HttpCore Put(this Uri url)
-        {
-            return Core(url, HttpMethod.Put);
-        }
+        public static HttpCore Put(this Uri url) => Core(url, HttpMethod.Put);
 
         /// <summary>
         /// Delete 请求
         /// </summary>
         /// <param name="url">地址</param>
-        public static HttpCore Delete(this string url)
-        {
-            return Core(url, HttpMethod.Delete);
-        }
+        public static HttpCore Delete(this string url) => Core(url, HttpMethod.Delete);
+
         /// <summary>
         /// Delete 请求
         /// </summary>
         /// <param name="url">地址</param>
-        public static HttpCore Delete(this Uri url)
-        {
-            return Core(url, HttpMethod.Delete);
-        }
+        public static HttpCore Delete(this Uri url) => Core(url, HttpMethod.Delete);
 
-        public static HttpCore Core(this string url, HttpMethod method)
-        {
-            return new HttpCore(url, method);
-        }
-        public static HttpCore Core(this Uri url, HttpMethod method)
-        {
-            return new HttpCore(url, method);
-        }
+        public static HttpCore Core(this string url, HttpMethod method) => new HttpCore(url, method);
+        public static HttpCore Core(this Uri url, HttpMethod method) => new HttpCore(url, method);
 
         #region 缓存
 
