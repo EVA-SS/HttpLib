@@ -14,10 +14,7 @@ namespace HttpLib
 
             bool _isInitialized;
 
-            protected void AddMapping(string fileExtension, string mimeType)
-            {
-                _mappings.Add(fileExtension, mimeType);
-            }
+            protected void AddMapping(string fileExtension, string mimeType) => _mappings.Add(fileExtension, mimeType);
 
             void AddWildcardIfNotPresent()
             {
@@ -412,9 +409,6 @@ namespace HttpLib
         }
         static readonly MimeMappingDictionaryBase _mappingDictionary = new MimeMappingDictionaryClassic();
 
-        public static string GetMimeMapping(string fileName)
-        {
-            return _mappingDictionary.GetMimeMapping(fileName);
-        }
+        public static string GetMimeMapping(string fileName) => _mappingDictionary.GetMimeMapping(fileName);
     }
 }

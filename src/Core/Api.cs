@@ -74,10 +74,7 @@ namespace HttpLib
                     }
                     catch { }
                 }
-                foreach (DirectoryInfo item in dir.GetDirectories())
-                {
-                    DeleteDirectory(item);
-                }
+                foreach (DirectoryInfo item in dir.GetDirectories())  DeleteDirectory(item);
             }
         }
 

@@ -144,47 +144,9 @@ namespace HttpLib
             option.core.SetState(DownState.Downloading, null);
             option.core.CanSpeed = true;
             TestTime(option);
+
             bool is_stop = false;
-            var taskList = new List<Task>(fileRS.Length);
-            var taskTmp = new List<Task>(fileRS.Length);
-            foreach (var it in fileRS)
-            {
-                if (option.core.resetState.Wait())
-                {
-                    is_stop = true;
-                    option.core.SetState(DownState.Complete, "主动停止");
-                    return null;
-                }
-                var task = ITask.Run(() =>
-                {
-                    int ErrCount = 0;
-                    while (true)
-                    {
-                        if (DownLoadSingle(option, it, ref is_stop, out var err))
-                        {
-                            it.error = false;
-                            it.errmsg = null;
-                            return;
-                        }
-                        else
-                        {
-                            ErrCount++;
-                            it.errmsg = err;
-                            it.error = true;
-                            if (ErrCount > option.core.RetryCount) return;
-                            else Thread.Sleep(1000);
-                        }
-                    }
-                });
-                taskList.Add(task);
-                taskTmp.Add(task);
-                if (taskTmp.Count > option.ThreadCount)
-                {
-                    Task.WaitAny(taskTmp.ToArray());
-                    taskTmp = taskTmp.Where(t => t.Status == TaskStatus.Running).ToList();
-                }
-            }
-            Task.WaitAll(taskList.ToArray());
+            Parallel.ForEach(fileRS, new ParallelOptions { MaxDegreeOfParallelism = option.ThreadCount }, it => DownLoadSingleRetry(option, it, ref is_stop));
             option.core.CanSpeed = false;
             if (is_stop) option.core.SetState(DownState.Complete, "主动停止");
             else
@@ -218,6 +180,33 @@ namespace HttpLib
             return null;
         }
 
+        static bool DownLoadSingleRetry(HttpDownOption option, FilesResult it, ref bool is_stop)
+        {
+            int ErrCount = 0;
+            while (true)
+            {
+                if (option.core.resetState.Wait())
+                {
+                    is_stop = true;
+                    option.core.SetState(DownState.Complete, "主动停止");
+                    return false;
+                }
+                if (DownLoadSingle(option, it, ref is_stop, out var err))
+                {
+                    it.error = false;
+                    it.errmsg = null;
+                    return true;
+                }
+                else
+                {
+                    ErrCount++;
+                    it.errmsg = err;
+                    it.error = true;
+                    if (ErrCount > option.core.RetryCount) return false;
+                    else Thread.Sleep(1000);
+                }
+            }
+        }
         static bool DownLoadSingle(HttpDownOption option, FilesResult item, ref bool is_stop, out string? error)
         {
             error = null;

@@ -431,9 +431,9 @@ namespace HttpLib
                 }
                 else
                 {
+                    stream_read.Close();
                     if (outfile != null) File.Delete(outfile);
                     outfile = null;
-                    stream_read.Close();
                     return null;
                 }
             }
@@ -441,30 +441,37 @@ namespace HttpLib
 
         byte[] GetByStream(ResultResponse _web, Stream stream)
         {
-            stream.Seek(0, SeekOrigin.Begin);
-            byte[] _byte = new byte[stream.Length];
-            stream.Read(_byte, 0, _byte.Length);
-            stream.Seek(0, SeekOrigin.Begin);
-            string fileclass = "";
-            try
+            stream.Position = 0;
+            using (var ms = new MemoryStream())
             {
-                using (var r = new BinaryReader(stream))
+                stream.CopyTo(ms);
+                ms.Position = stream.Position = 0;
+                string fileclass = "";
+                try
                 {
-                    byte buffer = r.ReadByte();
-                    fileclass = buffer.ToString();
-                    buffer = r.ReadByte();
-                    fileclass += buffer.ToString();
+                    using (var r = new BinaryReader(stream))
+                    {
+                        byte buffer = r.ReadByte();
+                        fileclass = buffer.ToString();
+                        buffer = r.ReadByte();
+                        fileclass += buffer.ToString();
+                    }
                 }
+                catch { }
+                ms.Position = 0;
+                if (fileclass == "31139")
+                {
+                    try
+                    {
+                        byte[] data = Decompress(ms);
+                        _web.Size = data.Length;
+                        return data;
+                    }
+                    catch { }
+                }
+                ms.Position = 0;
+                return ms.ToArray();
             }
-            catch { }
-
-            if (fileclass == "31139")
-            {
-                byte[] data = Decompress(_byte);
-                _web.Size = data.Length;
-                return data;
-            }
-            else return _byte;
         }
 
         Encoding GetEncoding(HttpWebResponse response, byte[] data)
@@ -495,36 +502,23 @@ namespace HttpLib
         ///  </summary> 
         ///  <param name="data"></param> 
         ///  <returns></returns> 
-        byte[] Decompress(byte[] data)
+        byte[] Decompress(MemoryStream ms)
         {
-            try
+            using (var zip = new GZipStream(ms, CompressionMode.Decompress))
             {
-                using (var ms = new MemoryStream(data))
+                using (var msreader = new MemoryStream())
                 {
-                    using (var zip = new GZipStream(ms, CompressionMode.Decompress))
+                    var buffer = new byte[Config.CacheSize];
+                    while (true)
                     {
-                        using (var msreader = new MemoryStream())
-                        {
-                            var buffer = new byte[Config.CacheSize];
-                            while (true)
-                            {
-                                var reader = zip.Read(buffer, 0, buffer.Length);
-                                if (reader <= 0)
-                                {
-                                    break;
-                                }
-                                msreader.Write(buffer, 0, reader);
-                            }
-                            msreader.Position = 0;
-                            buffer = msreader.ToArray();
-                            return buffer;
-                        }
+                        var reader = zip.Read(buffer, 0, buffer.Length);
+                        if (reader <= 0) break;
+                        msreader.Write(buffer, 0, reader);
                     }
+                    msreader.Position = 0;
+                    buffer = msreader.ToArray();
+                    return buffer;
                 }
-            }
-            catch
-            {
-                return data;
             }
         }
 
@@ -637,7 +631,7 @@ namespace HttpLib
                                     fileIndex++;
                                     using (file.Stream)
                                     {
-                                        file.Stream.Seek(0, SeekOrigin.Begin);
+                                        file.Stream.Position = 0;
                                         int bytesRead = 0;
                                         byte[] buffer = new byte[Config.CacheSize];
                                         while ((bytesRead = file.Stream.Read(buffer, 0, buffer.Length)) > 0)
@@ -665,7 +659,7 @@ namespace HttpLib
                                     fileIndex++;
                                     using (file.Stream)
                                     {
-                                        file.Stream.Seek(0, SeekOrigin.Begin);
+                                        file.Stream.Position = 0;
                                         int bytesRead = 0;
                                         byte[] buffer = new byte[Config.CacheSize];
                                         while ((bytesRead = file.Stream.Read(buffer, 0, buffer.Length)) > 0)
